@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <project name="Jetrix TetriNET Server" default="dist" basedir=".">
 
-  <taskdef name="pack200" classname="com.sun.tools.apache.ant.pack200.Pack200Task" classpath="lib/Pack200Task.jar"/>
-
   <property name="compile.debug"    value="true"/>
   <property name="compile.optimize" value="false"/>
   <property name="src"     value="src"/>
@@ -106,9 +104,12 @@
         <include name="tetrinet-channels.dtd"/>
       </fileset>
       <fileset dir="${src}/etc/icons">
-        <include name="jetrix-16x16.png"/>
+        <include name="jetrix.ico"/>
       </fileset>
     </jar>
+
+    <!-- Check if the packed JAR is up to date -->
+    <uptodate property="jar.pack.notRequired" srcfile="${dist}/lib/jetrix-${version}.jar" targetfile="${dist}/lib/jetrix-${version}.pack"/>
 
     <!-- Create the Launcher JAR -->
     <jar jarfile="${dist}/lib/jetrix-launcher-${version}.jar" compress="false">
@@ -136,34 +137,45 @@
     </war>
   </target>
 
-  <target name="pack" depends="jar" description="Pack the dependencies to reduce the distribution size">
+  <target name="jar.pack" depends="jar" unless="jar.pack.notRequired" description="Pack the Jetrix JAR if necessary">
+    <echo message="Packing jetrix-${version}.jar"/>
+    <exec executable="pack200" dir="${dist}/lib">
+      <arg line="-g jetrix-${version}.pack jetrix-${version}.jar"/>
+    </exec>
+  </target>
+
+  <target name="pack" description="Pack the dependency to reduce the distribution size">
     <!-- Copy the JARs -->
     <copy todir="${build}/lib">
       <fileset dir="${lib}" includes="*"/>
     </copy>
 
-    <!-- Pack the main JAR and the WAR for the administration console -->
-    <pack200 src="${dist}/lib/jetrix-${version}.jar" destfile="${dist}/lib/jetrix-${version}.jar.pack" gzipoutput="false" stripdebug="false" keepfileorder="false"/>
-    <pack200 src="${dist}/webapp/jetrix-admin-${version}.war" destfile="${dist}/webapp/jetrix-admin-${version}.war.pack" gzipoutput="false" stripdebug="false" keepfileorder="false"/>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="commons-digester"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="commons-collections"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="commons-beanutils"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="commons-lang-2.0-light"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="jetty"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="servlet-light"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="jasper-runtime"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="jcrontab-1.4.1-light"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="systray4j-2.4.1"/></antcall>
 
-    <!-- Pack the dependencies -->
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="commons-digester"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="commons-collections"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="commons-beanutils"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="commons-lang-2.0-light"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="jetty"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="servlet-light"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="jasper-runtime"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="jcrontab-1.4.1-light"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="jdic-tray-0.9"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="jdic-tray-win-0.9"/></antcall>
   </target>
 
-  <target name="pack.lib" description="Pack the library specified by the ${library} property">
-    <pack200 src="${build}/lib/${library}.jar" destfile="${build}/lib/${library}.jar.pack" gzipoutput="false" stripdebug="true" keepfileorder="false"/>
+  <target name="pack.check">
+    <!-- Check if the existing packed JARs are up to date -->
+    <uptodate property="pack.notRequired" srcfile="${build}/lib/${library}.jar" targetfile="${build}/lib/${library}.pack"/>
+    <antcall target="pack.pack" inheritAll="true"/>
   </target>
 
-  <target name="dist" depends="pack">
+  <target name="pack.pack" unless="pack.notRequired">
+    <echo message="Packing ${library}.jar" />
+    <exec executable="pack200" dir="${build}/lib">
+      <arg line="-g -G ${library}.pack ${library}.jar"/>
+    </exec>
+  </target>
+
+  <target name="dist" depends="jar.pack, pack">
 
     <!-- Replace the tokens in the scripts -->
     <mkdir dir="${build}/bin"/>
@@ -195,7 +207,7 @@
         <include name="update" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}/lib/" dir="${dist}/lib/">
-        <include name="jetrix-${version}.jar.pack" />
+        <include name="jetrix-${version}.pack" />
         <include name="jetrix-launcher-${version}.jar" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}/lib/" dir="${build}/lib">
@@ -203,15 +215,15 @@
         <include name="commons-collections*.pack" />
         <include name="commons-beanutils*.pack" />
         <include name="commons-lang*.pack" />
-        <include name="jetty*.pack"/>
-        <include name="servlet-light*.pack"/>
-        <include name="jasper-runtime*.pack"/>
+        <include name="jetty.pack"/>
+        <include name="servlet-light.pack"/>
+        <include name="jasper-runtime.pack"/>
         <include name="jcrontab*.pack"/>
-        <include name="jdic*.pack" />
-        <include name="tray.dll" />
+        <include name="systray4j*.pack" />
+        <include name="systray4j*.dll" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}/lib/" dir="${dist}/webapp/">
-        <include name="*.war.pack" />
+        <include name="*.war" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}/lang/" dir="${src}/lang/">
         <include name="*.properties" />
@@ -236,7 +248,7 @@
         <include name="update" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}/lib/" dir="${dist}/lib/">
-        <include name="jetrix-${version}.jar.pack" />
+        <include name="jetrix-${version}.pack" />
         <include name="jetrix-launcher-${version}.jar" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}/lib/" dir="${build}/lib">
@@ -244,15 +256,14 @@
         <include name="commons-collections*.pack" />
         <include name="commons-beanutils*.pack" />
         <include name="commons-lang*.pack" />
-        <include name="jetty*.pack"/>
-        <include name="servlet-light*.pack"/>
-        <include name="jasper-runtime*.pack"/>
+        <include name="jetty.pack"/>
+        <include name="servlet-light.pack"/>
+        <include name="jasper-runtime.pack"/>
         <include name="jcrontab*.pack"/>
-        <include name="jdic*.pack" />
-        <exclude name="jdic-tray-win*.pack" />
+        <include name="systray4j*.pack" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}/lib/" dir="${dist}/webapp/">
-        <include name="*.war.pack" />
+        <include name="*.war" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}/lang/" dir="${src}/lang/">
         <include name="*.properties" />
@@ -294,8 +305,8 @@
     <zip zipfile="${dist}/src/jetrix-${version}-src.zip">
       <zipfileset prefix="jetrix-${version}-src/" dir=".">
         <include name="build.xml" />
-        <include name="project.xml" />
-        <include name="project.properties" />
+        <include name="build.properties.sample" />
+        <include name="jetrix.properties" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}-src/src/" dir="${src}">
         <exclude name="site/"/>
@@ -306,8 +317,8 @@
     <tar destfile="${dist}/src/jetrix-${version}-src.tar">
       <tarfileset prefix="jetrix-${version}-src/" dir=".">
         <include name="build.xml" />
-        <include name="project.xml" />
-        <include name="project.properties" />
+        <include name="build.properties.sample" />
+        <include name="jetrix.properties" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}-src/src/" dir="${src}">
         <exclude name="site/"/>
@@ -342,7 +353,7 @@
     <unzip src="${dist}/bin/jetrix-${version}.zip" dest="${deploy}" />
 
     <!-- Checksum computation -->
-    <java classname="net.jetrix.tools.patcher.UpdateList" dir="${deploy}/jetrix-${version}" classpath="${deploy}/jetrix-${version}/lib/jetrix-${version}.jar" fork="yes" />
+    <java classname="net.jetrix.tools.patcher.UpdateList" dir="${deploy}/jetrix-${version}" classpath="${build}/classes" fork="yes" />
 
     <!-- Uploading to patch server -->
     <ftp server="${ftp.host}" remotedir="/vsite/tetrinet/public_html/jetrix/autoupdate" userid="${ftp.login}" password="${ftp.pass}" depends="yes" verbose="yes" ignoreNoncriticalErrors="yes">

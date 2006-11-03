@@ -67,12 +67,6 @@ public class ServerConfig
     private int status;
     private Statistics statistics;
 
-    // datasource parameters
-    private String dataSourceDriver;
-    private String dataSourceURL;
-    private String dataSourceUsername;
-    private String dataSourcePassword;
-
     private URL serverConfigURL;
     private URL channelsConfigURL;
 
@@ -147,17 +141,8 @@ public class ServerConfig
         // todo make a backup copy of the previous configuration files
 
         // save the server.xml file
-        PrintWriter out = null;
-
-        try
-        {
-            File file = new File(serverConfigURL.toURI());
-            out = new PrintWriter(file, ENCODING);
-        }
-        catch (URISyntaxException e)
-        {
-            log.log(Level.SEVERE, e.getMessage(), e);
-        }
+        File file = new File(serverConfigURL.getPath());
+        PrintWriter out = new PrintWriter(file, ENCODING);
 
         out.println("<?xml version=\"1.0\"?>");
         out.println("<!DOCTYPE tetrinet-server PUBLIC \"-//LFJR//Jetrix TetriNET Server//EN\" \"http://jetrix.sourceforge.net/dtd/tetrinet-server.dtd\">");
@@ -203,7 +188,6 @@ public class ServerConfig
         }
         out.println("  </listeners>");
         out.println();
-
         out.println("  <!-- Services -->");
         out.println("  <services>");
         for (Service service : getServices())
@@ -241,7 +225,6 @@ public class ServerConfig
         }
         out.println("  </services>");
         out.println();
-
         out.println("  <!-- Server commands -->");
         out.println("  <commands>");
         Iterator<Command> commands = CommandManager.getInstance().getCommands(AccessLevel.ADMINISTRATOR);
@@ -262,7 +245,6 @@ public class ServerConfig
         }
         out.println("  </commands>");
         out.println();
-
         out.println("  <ban>");
         Iterator<Banlist.Entry> entries = Banlist.getInstance().getBanlist();
         while (entries.hasNext())
@@ -272,36 +254,13 @@ public class ServerConfig
         }
         out.println("  </ban>");
         out.println();
-
-        out.println("  <!-- Database connection parameters -->");
-        out.println("  <datasource>");
-        out.println("    <!-- The class of the JDBC driver used -->");
-        out.println("    <driver>" + dataSourceDriver + "</driver>");
-        out.println();
-        out.println("    <!-- The URL of the database (jdbc:<type>://<hostname>:<port>/<database>) -->");
-        out.println("    <url>" + dataSourceURL + "</url>");
-        out.println();
-        out.println("    <!-- The username connecting to the database -->");
-        out.println("    <username>" + dataSourceUsername + "</username>");
-        out.println();
-        out.println("    <!-- The password of the user -->");
-        out.println("    <password>" + dataSourcePassword + "</password>");
-        out.println("  <datasource>");
-        out.println();
         out.println("</tetrinet-server>");
 
         out.close();
 
         // save the channels.xml file
-        try
-        {
-            File file = new File(channelsConfigURL.toURI());
-            out = new PrintWriter(file, ENCODING);
-        }
-        catch (URISyntaxException e)
-        {
-            log.log(Level.SEVERE, e.getMessage(), e);
-        }
+        file = new File(channelsConfigURL.getPath());
+        out = new PrintWriter(file, ENCODING);
 
         out.println("<?xml version=\"1.0\"?>");
         out.println("<!DOCTYPE tetrinet-channels PUBLIC \"-//LFJR//Jetrix Channels//EN\" \"http://jetrix.sourceforge.net/dtd/tetrinet-channels.dtd\">");
@@ -451,6 +410,7 @@ public class ServerConfig
                 {
                     String description = config.getDescription();
                     description = description.contains("<") ? "<![CDATA[" + description + "]]>" : description;
+                    description = description.replaceAll("&", "&amp;");
                     out.println("      <description>" + description + "</description>");
                 }
 
@@ -476,11 +436,6 @@ public class ServerConfig
                 if (config.isIdleAllowed())
                 {
                     out.println("      <idle>true</idle>");
-                }
-
-                if (!config.isVisible())
-                {
-                    out.println("      <visible>false</visible>");
                 }
 
                 if (config.getMaxPlayers() != ChannelConfig.PLAYER_CAPACITY)
@@ -906,70 +861,6 @@ public class ServerConfig
     public Statistics getStatistics()
     {
         return statistics;
-    }
-
-    /**
-     * @since 0.3
-     */
-    public String getDataSourceDriver()
-    {
-        return dataSourceDriver;
-    }
-
-    /**
-     * @since 0.3
-     */
-    public void setDataSourceDriver(String driver)
-    {
-        this.dataSourceDriver = driver;
-    }
-
-    /**
-     * @since 0.3
-     */
-    public String getDataSourceURL()
-    {
-        return dataSourceURL;
-    }
-
-    /**
-     * @since 0.3
-     */
-    public void setDataSourceURL(String url)
-    {
-        this.dataSourceURL = url;
-    }
-
-    /**
-     * @since 0.3
-     */
-    public String getDataSourceUsername()
-    {
-        return dataSourceUsername;
-    }
-
-    /**
-     * @since 0.3
-     */
-    public void setDataSourceUsername(String username)
-    {
-        this.dataSourceUsername = username;
-    }
-
-    /**
-     * @since 0.3
-     */
-    public String getDataSourcePassword()
-    {
-        return dataSourcePassword;
-    }
-
-    /**
-     * @since 0.3
-     */
-    public void setDataSourcePassword(String password)
-    {
-        this.dataSourcePassword = password;
     }
 
 }

@@ -27,12 +27,6 @@ package net.jetrix.messages;
  */
 public class PlayerNumMessage extends ChannelMessage
 {
-    public PlayerNumMessage()
-    {
-    }
 
-    public PlayerNumMessage(int num)
-    {
-        setSlot(num);
-    }
+
 }

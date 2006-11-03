@@ -81,7 +81,9 @@ public class FloodFilter extends GenericFilter
             if ((now - lastWarning) > warningPeriod * 1000)
             {
                 User user = getChannel().getPlayer(slot);
-                out.add(new PlineMessage("filter.flood.blocked", user.getName()));
+                PlineMessage warning = new PlineMessage();
+                warning.setKey("filter.flood.blocked", user.getName());
+                out.add(warning);
                 lastWarning = now;
             }
         }

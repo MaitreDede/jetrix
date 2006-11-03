@@ -19,6 +19,8 @@
 
 package net.jetrix.commands;
 
+import java.io.*;
+
 import net.jetrix.*;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
@@ -39,17 +41,23 @@ public class MotdCommand extends AbstractCommand
     public void execute(CommandMessage m)
     {
         Client client = (Client) m.getSource();
-        ServerConfig config = Server.getInstance().getConfig();
+        ServerConfig conf = Server.getInstance().getConfig();
 
-        // send the message of the day line by line
-        if (config.getMessageOfTheDay() != null)
+        try
         {
-            String[] lines = config.getMessageOfTheDay().split("\n");
-
-            for (String line : lines)
+            // send the message of the day line by line
+            BufferedReader motd = new BufferedReader(new StringReader(conf.getMessageOfTheDay()));
+            String motdline;
+            while ((motdline = motd.readLine()) != null)
             {
-                client.send(new PlineMessage("<gray>" + line));
+                Message response = new PlineMessage("<gray>" + motdline);
+                client.send(response);
             }
+            motd.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
         }
     }
 }

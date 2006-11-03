@@ -55,7 +55,7 @@ public class ProtocolManagerTest extends TestCase
         Exception exception = null;
         try
         {
-            manager.getProtocol(Protocol.class);
+            manager.getProtocol(Object.class);
         }
         catch (Exception e)
         {

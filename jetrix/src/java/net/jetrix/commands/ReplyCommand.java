@@ -67,7 +67,9 @@ public class ReplyCommand extends AbstractCommand implements ParameterCommand
         if (target == null)
         {
             // previous user no longer connected
-            client.send(new PlineMessage("command.player_not_found", targetName));
+            PlineMessage response = new PlineMessage();
+            response.setKey("command.player_not_found", targetName);
+            client.send(response);
         }
         else
         {

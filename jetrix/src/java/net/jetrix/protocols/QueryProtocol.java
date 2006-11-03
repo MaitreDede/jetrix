@@ -31,7 +31,7 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class QueryProtocol extends AbstractProtocol
+public class QueryProtocol implements Protocol
 {
     /** Line terminator */
     public static final char EOL = 0x0A;
@@ -67,7 +67,7 @@ public class QueryProtocol extends AbstractProtocol
 
     public String translate(PlineMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append(m.getText());
 
         // add the response terminator except for playerquery
@@ -81,7 +81,7 @@ public class QueryProtocol extends AbstractProtocol
 
     public String translate(NoConnectingMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("noconnecting ");
         message.append(m.getText());
         return message.toString();
@@ -92,9 +92,8 @@ public class QueryProtocol extends AbstractProtocol
         throw new UnsupportedOperationException();
     }
 
-    public char getEOL()
-    {
-        return 0xFF;
+    public char getEOL() {
+        return EOL;
     }
 
     /**

@@ -48,10 +48,9 @@ public class TspecProtocol extends TetrinetProtocol
     {
         Message message = null;
 
-        if (line.startsWith("pline") && !line.startsWith("plineact"))
+        if (line.startsWith("pline"))
         {
             SmsgMessage smsg = new SmsgMessage();
-            smsg.setSlot(Integer.parseInt(line.substring(6, 7)));
 
             if (line.indexOf("//") == 8)
             {
@@ -96,7 +95,7 @@ public class TspecProtocol extends TetrinetProtocol
 
     public String translate(SpectatorListMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("speclist #");
         message.append(m.getChannel());
 
@@ -111,7 +110,7 @@ public class TspecProtocol extends TetrinetProtocol
 
     public String translate(SmsgMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         String name = ((Client) m.getSource()).getUser().getName();
 
         if (m.isPrivate())
@@ -133,7 +132,7 @@ public class TspecProtocol extends TetrinetProtocol
     {
         if (m.getSlot() == 0)
         {
-            StringBuilder message = new StringBuilder();
+            StringBuffer message = new StringBuffer();
             message.append("specjoin ");
             message.append(m.getName());
             return message.toString();
@@ -148,7 +147,7 @@ public class TspecProtocol extends TetrinetProtocol
     {
         if (m.getSlot() == 0)
         {
-            StringBuilder message = new StringBuilder();
+            StringBuffer message = new StringBuffer();
             message.append("specleave ");
             message.append(m.getName());
             return message.toString();
@@ -157,6 +156,11 @@ public class TspecProtocol extends TetrinetProtocol
         {
             return super.translate(m, locale);
         }
+    }
+
+    public String toString()
+    {
+        return "[Protocol name=" + getName() + "]";
     }
 
 }

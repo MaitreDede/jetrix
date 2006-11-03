@@ -299,7 +299,9 @@ public class Channel extends Thread implements Destination
         if (m.getSource() instanceof Client)
         {
             Client client = (Client) m.getSource();
-            sendAll(new PlineMessage("channel.game.paused-by", client.getUser().getName()));
+            PlineMessage message = new PlineMessage();
+            message.setKey("channel.game.paused-by", client.getUser().getName());
+            sendAll(message);
         }
 
         sendAll(m);
@@ -313,7 +315,9 @@ public class Channel extends Thread implements Destination
         if (m.getSource() instanceof Client)
         {
             Client client = (Client) m.getSource();
-            sendAll(new PlineMessage("channel.game.resumed-by", client.getUser().getName()));
+            PlineMessage message = new PlineMessage();
+            message.setKey("channel.game.resumed-by", client.getUser().getName());
+            sendAll(message);
         }
 
         sendAll(m);
@@ -436,7 +440,9 @@ public class Channel extends Thread implements Destination
             if (m.getSource() instanceof Client)
             {
                 Client client = (Client) m.getSource();
-                sendAll(new PlineMessage("channel.game.started-by", client.getUser().getName()));
+                PlineMessage message = new PlineMessage();
+                message.setKey("channel.game.started-by", client.getUser().getName());
+                sendAll(message);
             }
 
             // initialiaze the game result
@@ -489,7 +495,9 @@ public class Channel extends Thread implements Destination
             if (m.getSource() instanceof Client)
             {
                 Client client = (Client) m.getSource();
-                sendAll(new PlineMessage("channel.game.stopped-by", client.getUser().getName()));
+                PlineMessage message = new PlineMessage();
+                message.setKey("channel.game.stopped-by", client.getUser().getName());
+                sendAll(message);
             }
 
             gameState = STOPPED;
@@ -511,7 +519,9 @@ public class Channel extends Thread implements Destination
         Client client = m.getClient();
         removeClient(client);
 
-        sendAll(new PlineMessage("channel.disconnected", client.getUser().getName()));
+        PlineMessage disconnected = new PlineMessage();
+        disconnected.setKey("channel.disconnected", client.getUser().getName());
+        sendAll(disconnected);
     }
 
     private void process(LeaveMessage m)
@@ -567,7 +577,8 @@ public class Channel extends Thread implements Destination
             sendAll(mjoin);
 
             // send a boggus slot number for gtetrinet
-            PlayerNumMessage mnum = new PlayerNumMessage(1);
+            PlayerNumMessage mnum = new PlayerNumMessage();
+            mnum.setSlot(1);
             client.send(mnum);
         }
         else
@@ -592,12 +603,10 @@ public class Channel extends Thread implements Destination
                 sendAll(mjoin, client);
 
                 // send the slot number assigned to the new player
-                PlayerNumMessage mnum = new PlayerNumMessage(slot + 1);
+                PlayerNumMessage mnum = new PlayerNumMessage();
+                mnum.setSlot(slot + 1);
                 client.send(mnum);
             }
-
-            // update the access level of the channel operator
-            updateChannelOperator();
         }
 
         // send the list of spectators
@@ -771,7 +780,8 @@ public class Channel extends Thread implements Destination
                 mjoin.setName(player1.getUser().getName());
                 sendAll(mjoin);
 
-                PlayerNumMessage mnum = new PlayerNumMessage(m.getSlot2());
+                PlayerNumMessage mnum = new PlayerNumMessage();
+                mnum.setSlot(m.getSlot2());
                 player1.send(mnum);
             }
 
@@ -782,12 +792,10 @@ public class Channel extends Thread implements Destination
                 mjoin.setName(player2.getUser().getName());
                 sendAll(mjoin);
 
-                PlayerNumMessage mnum = new PlayerNumMessage(m.getSlot1());
+                PlayerNumMessage mnum = new PlayerNumMessage();
+                mnum.setSlot(m.getSlot1());
                 player2.send(mnum);
             }
-
-            // update the access level of the channel operator
-            updateChannelOperator();
         }
     }
 
@@ -852,12 +860,6 @@ public class Channel extends Thread implements Destination
             }
 
             sendAll(leave);
-        }
-
-        // update the channel operator is the channel is not empty
-        if (!isEmpty())
-        {
-            updateChannelOperator();
         }
 
         // stop the game if the channel is now empty
@@ -1058,8 +1060,10 @@ public class Channel extends Thread implements Destination
 
         int nbTeamsLeft = 0;
 
-        for (Client client : slots)
+        for (int i = 0; i < slots.size(); i++)
         {
+            Client client = slots.get(i);
+
             if (client != null && client.getUser().isPlaying())
             {
                 String team = client.getUser().getTeam();
@@ -1084,39 +1088,6 @@ public class Channel extends Thread implements Destination
     public Field getField(int slot)
     {
         return fields[slot];
-    }
-
-    /**
-     * Promote the first player in the channel to the channel operator access
-     * level if necessary, and demote the former channel operator to the
-     * player access level.
-     *
-     * @since 0.3
-     */
-    private void updateChannelOperator()
-    {
-        boolean firstFound = false;
-        for (Client client : slots)
-        {
-            if (client != null)
-            {
-                User user = client.getUser();
-
-                if (user.getAccessLevel() == AccessLevel.PLAYER && !firstFound)
-                {
-                    // promote to channel operator
-                    user.setAccessLevel(AccessLevel.CHANNEL_OPERATOR);
-                }
-                else if (user.getAccessLevel() == AccessLevel.CHANNEL_OPERATOR && firstFound)
-                {
-                    // demote the player
-                    user.setAccessLevel(AccessLevel.PLAYER);
-                }
-
-                firstFound = true;
-            }
-        }
-
     }
 
 }

@@ -19,13 +19,9 @@
 
 package net.jetrix.messages;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import net.jetrix.*;
 
-import net.jetrix.Language;
-import net.jetrix.Protocol;
-import net.jetrix.Server;
+import java.util.*;
 
 /**
  * A generic internationalized text message.
@@ -46,27 +42,20 @@ public abstract class TextMessage extends ChannelMessage
      */
     public String getText()
     {
-        if (key == null)
+        Locale defaultLocale = null;
+
+        if (Server.getInstance() != null)
         {
-            return text;
+            // get the server locale configured in config.xml
+            defaultLocale = Server.getInstance().getConfig().getLocale();
         }
         else
         {
-            Locale defaultLocale = null;
-
-            if (Server.getInstance() != null)
-            {
-                // get the server locale configured in config.xml
-                defaultLocale = Server.getInstance().getConfig().getLocale();
-            }
-            else
-            {
-                // get the default system locale
-                defaultLocale = Locale.getDefault();
-            }
-
-            return getText(defaultLocale);
+            // get the default system locale
+            defaultLocale = Locale.getDefault();
         }
+
+        return getText(defaultLocale);
     }
 
     /**

@@ -222,7 +222,7 @@
         String usage = command.getUsage(conf.getLocale());
         usage = usage.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
-        Appendable aliases = new StringBuilder();
+        StringBuffer aliases = new StringBuffer();
         for (int i = 0; i < command.getAliases().length; i++) {
             if (i > 0) { aliases.append(", "); }
             aliases.append(command.getAliases()[i]);
@@ -231,17 +231,7 @@
         <td><%= aliases %></td>
         <td><%= usage %></td>
         <td><%= command.getDescription(conf.getLocale()) %></td>
-        <td>
-          <%
-            switch (command.getAccessLevel()) {
-                case AccessLevel.PLAYER: out.println("Player"); break;
-                case AccessLevel.CHANNEL_OPERATOR: out.println("Channel Operator"); break;
-                case AccessLevel.OPERATOR: out.println("Operator"); break;
-                case AccessLevel.ADMINISTRATOR: out.println("Administrator"); break;
-                default: out.println(command.getAccessLevel());
-            }
-          %>
-        </td>
+        <td><%= command.getAccessLevel() %></td>
         <td><a href="/servlet/<%= ServerAction.class.getName() %>?action=command.remove&command=<%= command.getClass().getName() %>"><img src="images/delete16.png" alt="Remove" title="Remove" border="0" ></a></td>
       </tr>
 <%  } %>

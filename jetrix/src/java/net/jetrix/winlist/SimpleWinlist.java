@@ -284,7 +284,7 @@ public class SimpleWinlist implements Winlist
 
                 for (Score score : scores)
                 {
-                    StringBuilder line = new StringBuilder();
+                    StringBuffer line = new StringBuffer();
                     line.append(score.getType() == Score.TYPE_PLAYER ? "p" : "t");
                     line.append("\t");
                     line.append(score.getScore());
@@ -321,7 +321,7 @@ public class SimpleWinlist implements Winlist
      */
     protected PlineMessage getGainMessage(Score score, long previousScore, long previousRank)
     {
-        StringBuilder key = new StringBuilder();
+        StringBuffer key = new StringBuffer();
         key.append("channel.score.");
         key.append(score.getType() == Score.TYPE_PLAYER ? "player" : "team");
         key.append(".");

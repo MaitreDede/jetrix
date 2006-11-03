@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2005  Emmanuel Bourg
+ * Copyright (C) 2001-2004  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -273,20 +273,16 @@ public class StatsFilter extends GenericFilter
                 }
 
                 // display the stats
-                String bpm = df.format(playerStats.getBlocksPerMinute());
+                String ppm = df.format(playerStats.getBlocksPerMinute());
 
-                StringBuilder text = new StringBuilder();
-                text.append("<purple>" + user.getName() + "</purple> : ");
-                text.append(playerStats.blockCount + " <aqua>blocks @<red>" + bpm + "</red> bpm, ");
-                text.append("<black>" + playerStats.linesAdded + "</black> added, ");
-                text.append("<black>" + playerStats.tetrisCount + "</black> tetris");
-                if (getChannel().getConfig().getSettings().getSpecialAdded() > 0)
-                {
-                    // stats on special blocks for non pure game only
-                    text.append(", <black>" + playerStats.specialsSent + " / " + playerStats.specialsReceived + "</black> specials");
-                }
+                PlineMessage result = new PlineMessage();
+                result.setText("<purple>" + user.getName() + "</purple> : "
+                        + playerStats.blockCount + " <aqua>blocks @<red>" + ppm + "</red> bpm, "
+                        + "<black>" + playerStats.linesAdded + "</black> added, "
+                        + "<black>" + playerStats.tetrisCount + "</black> tetris, "
+                        + "<black>" + playerStats.specialsSent + " / " + playerStats.specialsReceived + "</black> specials");
 
-                out.add(new PlineMessage(text.toString()));
+                out.add(result);
             }
         }
 
