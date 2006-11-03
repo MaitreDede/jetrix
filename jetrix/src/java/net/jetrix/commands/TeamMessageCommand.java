@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,11 +30,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class TeamMessageCommand extends AbstractCommand implements ParameterCommand
+public class TeamMessageCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
         return (new String[] { "tmsg", "gu" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -42,35 +49,46 @@ public class TeamMessageCommand extends AbstractCommand implements ParameterComm
         return "/tmsg <" + Language.getText("command.params.message", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 1;
+        return Language.getText("command.team_message.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
         if (client.getUser().getTeam() == null)
         {
             // the message can't be sent since the player is not in a team
             PlineMessage response = new PlineMessage();
-            response.setKey("command.tmsg.not_in_team");
-            client.send(response);
+            response.setKey("command.team_message.not_in_team");
+            client.sendMessage(response);
         }
-        else
+        else if (m.getParameterCount() >= 1)
         {
             // preparing message
             PlineMessage response = new PlineMessage();
-            response.setKey("command.tmsg.format", client.getUser().getName(), m.getText());
+            response.setKey("command.team_message.format", new Object[] { client.getUser().getName(), m.getText() });
 
-            for (Client target : ClientRepository.getInstance().getClients())
+            Iterator clients = ClientRepository.getInstance().getClients();
+            while (clients.hasNext())
             {
+                Client target = (Client)clients.next();
                 if (client.getUser().getTeam().equals(target.getUser().getTeam()) && client != target)
                 {
-                    target.send(response);
+                    target.sendMessage(response);
                 }
             }
+        }
+        else
+        {
+            // not enough parameters
+            Locale locale = client.getUser().getLocale();
+            PlineMessage response = new PlineMessage();
+            String message = "<red>" + m.getCommand() + "<blue> <" + Language.getText("command.params.message", locale) + ">";
+            response.setText(message);
+            client.sendMessage(response);
         }
     }
 }

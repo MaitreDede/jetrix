@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,7 +21,6 @@ package net.jetrix.commands;
 
 import java.util.*;
 import java.util.logging.*;
-
 import net.jetrix.*;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
@@ -32,11 +31,19 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class OperatorCommand extends AbstractCommand implements ParameterCommand
+public class OperatorCommand implements Command
 {
+    private int accessLevel = 0;
+    private Logger logger = Logger.getLogger("net.jetrix");
+
     public String[] getAliases()
     {
-        return (new String[]{"operator", "op"});
+        return (new String[] { "op", "operator" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -44,33 +51,44 @@ public class OperatorCommand extends AbstractCommand implements ParameterCommand
         return "/op <" + Language.getText("command.params.password", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 1;
+        return Language.getText("command.operator.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        String cmd = m.getCommand();
+        Client client = (Client)m.getSource();
         ServerConfig conf = Server.getInstance().getConfig();
 
-        String password = m.getParameter(0);
-
-        if (password.equalsIgnoreCase(conf.getOpPassword()))
+        if (m.getParameterCount() >= 1)
         {
-            // access granted
-            client.getUser().setAccessLevel(1);
-            PlineMessage response = new PlineMessage();
-            response.setKey("command.operator.granted");
-            client.send(response);
+            String password = m.getParameter(0);
+
+            if (password.equalsIgnoreCase(conf.getOpPassword()))
+            {
+                // access granted
+                client.getUser().setAccessLevel(1);
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.operator.granted");
+                client.sendMessage(response);
+            }
+            else
+            {
+                // access denied, logging attempt
+                logger.severe(client.getUser().getName() + "(" + client.getInetAddress() + ") attempted to get operator status.");
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.operator.denied");
+                client.sendMessage(response);
+            }
         }
         else
         {
-            // access denied, logging attempt
-            log.severe(client.getUser().getName() + "(" + client.getInetAddress() + ") attempted to get operator status.");
+            // not enough parameters
             PlineMessage response = new PlineMessage();
-            response.setKey("command.operator.denied");
-            client.send(response);
+            response.setText("<red>" + cmd + "<blue> <password>");
+            client.sendMessage(response);
         }
     }
 }

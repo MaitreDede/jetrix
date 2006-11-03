@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,7 +22,6 @@ package net.jetrix.protocols;
 import java.util.*;
 import net.jetrix.*;
 import net.jetrix.messages.*;
-import org.apache.commons.lang.*;
 
 /**
  * Protocol to communicate with IRC clients.
@@ -30,11 +29,11 @@ import org.apache.commons.lang.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class IRCProtocol extends AbstractProtocol
+public class IRCProtocol implements Protocol
 {
-    private static Map<String, String> styles = new HashMap<String, String>();
+    private static Map styles = new HashMap();
 
-    static
+    static 
     {
         styles.put("red", "\u000304");
         styles.put("black", "\u000301");
@@ -71,37 +70,7 @@ public class IRCProtocol extends AbstractProtocol
      */
     public Message getMessage(String line)
     {
-        IRCMessage msg = IRCMessage.parse(line);
-
-        if (msg.isCommand(IRCCommand.JOIN))
-        {
-            AddPlayerMessage message = new AddPlayerMessage();
-            message.setDestination(ChannelManager.getInstance().getChannel(msg.getParameter(0)));
-
-            return message;
-        }
-        else if (msg.isCommand(IRCCommand.PART))
-        {
-            LeaveMessage message = new LeaveMessage();
-            message.setDestination(ChannelManager.getInstance().getChannel(msg.getParameter(0)));
-
-            return message;
-        }
-        else if (msg.isCommand(IRCCommand.PRIVMSG))
-        {
-            // todo : check for emotes
-
-            SmsgMessage message = new SmsgMessage();
-            message.setDestination(ChannelManager.getInstance().getChannel(msg.getParameter(0)));
-            message.setText(msg.getParameter(1));
-            message.setPrivate(false);
-
-            return message;
-        }
-        else
-        {
-            return null;
-        }
+        return null;
     }
 
     /**
@@ -110,190 +79,52 @@ public class IRCProtocol extends AbstractProtocol
      */
     public String translate(Message m, Locale locale)
     {
-        if (m instanceof PlineMessage)         { return translate((PlineMessage) m, locale); }
-        else if (m instanceof PlayerLostMessage)    { return translate((PlayerLostMessage) m); }
-        else if (m instanceof PlineActMessage)      { return translate((PlineActMessage) m, locale); }
-        else if (m instanceof TeamMessage)          { return translate((TeamMessage) m, locale); }
-        else if (m instanceof JoinMessage)          { return translate((JoinMessage) m, locale); }
-        else if (m instanceof LeaveMessage)         { return translate((LeaveMessage) m, locale); }
-        else if (m instanceof NewGameMessage)       { return translate((NewGameMessage) m, locale); }
-        else if (m instanceof EndGameMessage)       { return translate((EndGameMessage) m, locale); }
-        else if (m instanceof IngameMessage)       { return translate((IngameMessage) m, locale); }
-        else if (m instanceof PauseMessage)         { return translate((PauseMessage) m); }
-        else if (m instanceof ResumeMessage)        { return translate((ResumeMessage) m); }
-        else if (m instanceof GmsgMessage)          { return translate((GmsgMessage) m, locale); }
-        else if (m instanceof SpectatorListMessage) { return translate((SpectatorListMessage) m, locale); }
-        //else if (m instanceof SmsgMessage)          { return translate((SmsgMessage) m, locale); }
-        else
-        {
-            return null;
-        }
+        return null;
     }
 
-    public String translate(PlineMessage m, Locale locale)
+    public String translate(PlineMessage m)
     {
-        IRCMessage message = new IRCMessage(IRCCommand.PRIVMSG);
-
-        Destination source = m.getSource();
-        if (source != null && source instanceof Client)
-        {
-            message.setNick(((Client) source).getUser().getName());
-        }
-        else
-        {
-            message.setNick("jetrix");
-        }
-
-        Channel channel = m.getChannel();
-        String name = "#jetrix";
-        if (channel != null)
-        {
-            name = "#" + channel.getConfig().getName();
-        }
-
-        message.addParameter(name);
-        message.addParameter(applyStyle(m.getText(locale)));
-
-        return message.toString();
+        return null;
     }
 
-    public String translate(PlineActMessage m, Locale locale)
+    public String translate(PlineActMessage m)
     {
-        IRCMessage message = new IRCMessage(IRCCommand.PRIVMSG);
-
-        Destination source = m.getSource();
-        if (source != null && source instanceof Client)
-        {
-            message.setNick(((Client) source).getUser().getName());
-        }
-        else
-        {
-            message.setNick("jetrix");
-        }
-
-        Channel channel = m.getChannel();
-        String name = "#jetrix";
-        if (channel != null)
-        {
-            name = "#" + channel.getConfig().getName();
-        }
-
-        message.addParameter(name);
-        message.addParameter(applyStyle("\u0001ACTION " + m.getText(locale) + "\u0001"));
-
-        return message.toString();
+        return null;
     }
 
-    public String translate(GmsgMessage m, Locale locale)
+    public String translate(TeamMessage m)
     {
-        IRCMessage message = new IRCMessage(IRCCommand.PRIVMSG);
-
-        Destination source = m.getSource();
-        if (source != null && source instanceof Client)
-        {
-            message.setNick(((Client) source).getUser().getName());
-        }
-        else
-        {
-            message.setNick("jetrix");
-        }
-
-        Channel channel = m.getChannel();
-        String name = "#jetrix";
-        if (channel != null)
-        {
-            name = "#" + channel.getConfig().getName();
-        }
-
-        // todo remove the <name> of the player at the beginning of the message
-
-        message.addParameter(name);
-        message.addParameter(applyStyle("<gray>" + m.getText(locale)));
-
-        return message.toString();
+        return null;
     }
 
-    public String translate(SpectatorListMessage m, Locale locale)
+    public String translate(JoinMessage m)
     {
-        IRCMessage message1 = new IRCMessage(IRCReply.RPL_NAMREPLY);
-        message1.setNick("jetrix");
-        message1.addParameter(((Client) m.getDestination()).getUser().getName());
-        message1.addParameter("=");
-        message1.addParameter("#" + m.getChannel());
-
-        Collection<String> spectators = m.getSpectators();
-        message1.addParameter(StringUtils.join(spectators.iterator(), " "));
-
-        IRCMessage message2 = new IRCMessage(IRCReply.RPL_ENDOFNAMES);
-        message2.setNick("jetrix");
-        message2.addParameter(((Client) m.getDestination()).getUser().getName());
-        message2.addParameter("#" + m.getChannel());
-        message2.addParameter("End of /NAMES list");
-
-        return message1.toString() + getEOL() + message2;
+        return null;
     }
 
-    public String translate(TeamMessage m, Locale locale)
+    public String translate(LeaveMessage m)
     {
-        Client client = (Client) m.getSource();
-
-        IRCMessage message = new IRCMessage(IRCCommand.PRIVMSG);
-        message.setNick("jetrix");
-        message.addParameter("#" + m.getChannel().getConfig().getName());
-
-        String messageKey = m.getName() == null ? "channel.team.none" : "channel.team.new";
-        Object[] params = new Object[] { client.getUser().getName(), m.getName() };
-        message.addParameter(applyStyle(Language.getText(messageKey, locale, params)));
-
-        return message.toString();
+        return null;
     }
 
-    public String translate(JoinMessage m, Locale locale)
+    public String translate(PlayerNumMessage m)
     {
-        IRCMessage message = new IRCMessage(IRCCommand.JOIN);
-        message.setNick(m.getName());
-        message.addParameter("#" + m.getChannel().getConfig().getName());
-
-        return message.toString();
+        return null;
     }
 
-    public String translate(LeaveMessage m, Locale locale)
+    public String translate(StartGameMessage m)
     {
-        IRCMessage message = new IRCMessage(IRCCommand.PART);
-        message.setNick(m.getName());
-        message.addParameter("#" + m.getChannel().getConfig().getName());
-
-        return message.toString();
+        return null;
     }
 
-    public String translate(NewGameMessage m, Locale locale)
+    public String translate(NewGameMessage m)
     {
-        IRCMessage message = new IRCMessage(IRCCommand.PRIVMSG);
-        message.setNick("jetrix");
-        message.addParameter("#" + m.getChannel().getConfig().getName());
-        message.addParameter(applyStyle(Language.getText("channel.game.start", locale)));
-
-        return message.toString();
+        return null;
     }
 
-    public String translate(EndGameMessage m, Locale locale)
+    public String translate(EndGameMessage m)
     {
-        IRCMessage message = new IRCMessage(IRCCommand.PRIVMSG);
-        message.setNick("jetrix");
-        message.addParameter("#" + m.getChannel().getConfig().getName());
-        message.addParameter(applyStyle(Language.getText("channel.game.stop", locale)));
-
-        return message.toString();
-    }
-
-    public String translate(IngameMessage m, Locale locale)
-    {
-        IRCMessage message = new IRCMessage(IRCCommand.PRIVMSG);
-        message.setNick("jetrix");
-        message.addParameter("#" + m.getChannel().getConfig().getName());
-        message.addParameter(applyStyle(Language.getText("channel.game.running", locale)));
-
-        return message.toString();
+        return null;
     }
 
     public String translate(PauseMessage m)
@@ -302,6 +133,11 @@ public class IRCProtocol extends AbstractProtocol
     }
 
     public String translate(ResumeMessage m)
+    {
+        return null;
+    }
+
+    public String translate(GmsgMessage m)
     {
         return null;
     }
@@ -322,6 +158,11 @@ public class IRCProtocol extends AbstractProtocol
     }
 
     public String translate(DisconnectedMessage m)
+    {
+        return null;
+    }
+
+    public String translate(AddPlayerMessage m)
     {
         return null;
     }
@@ -391,20 +232,22 @@ public class IRCProtocol extends AbstractProtocol
         return null;
     }
 
-    public Map<String,String> getStyles()
+    public Map getStyles()
     {
         return styles;
     }
 
     public String applyStyle(String text)
     {
-        // todo to be optimized later
-        Map<String,String> styles = getStyles();
+        // to be optimized later
+        Map styles = getStyles();
         if (styles == null) return text;
-
-        for (String key : styles.keySet())
+        
+        Iterator keys = styles.keySet().iterator();
+        while (keys.hasNext())
         {
-            String value = styles.get(key);
+            String key = (String)keys.next();
+            String value = (String)styles.get(key);
             if (value == null) { value = ""; }
             text = text.replaceAll("<" + key + ">", value);
             text = text.replaceAll("</" + key + ">", value);
@@ -412,9 +255,9 @@ public class IRCProtocol extends AbstractProtocol
         return text;
     }
 
-    public char getEOL()
+    public String toString()
     {
-        return '\n';
+        return "[Protocol name=" + getName() + "]";
     }
 
 }

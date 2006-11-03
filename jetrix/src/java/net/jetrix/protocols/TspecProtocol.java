@@ -46,38 +46,15 @@ public class TspecProtocol extends TetrinetProtocol
      */
     public Message getMessage(String line)
     {
-        Message message = null;
+        Message message = super.getMessage(line);
 
-        if (line.startsWith("pline") && !line.startsWith("plineact"))
+        if (message instanceof PlineMessage)
         {
-            SmsgMessage smsg = new SmsgMessage();
-            smsg.setSlot(Integer.parseInt(line.substring(6, 7)));
-
-            if (line.indexOf("//") == 8)
-            {
-                // public comment
-                smsg.setPrivate(false);
-                if (line.length() > 11)
-                {
-                    smsg.setText(line.substring(11));
-                }
-
-                message = smsg;
-            }
-            else if (line.indexOf("/") != 8)
-            {
-                // private comment
-                smsg.setPrivate(true);
-                if (line.length() > 8)
-                {
-                    smsg.setText(line.substring(8));
-                }
-
-                message = smsg;
-            }
+            PlineMessage pline = (PlineMessage)message;
+            pline.setSlot(0);
         }
 
-        return message != null ? message : super.getMessage(line);
+        return message;
     }
 
     /**
@@ -86,8 +63,7 @@ public class TspecProtocol extends TetrinetProtocol
      */
     public String translate(Message m, Locale locale)
     {
-        if (m instanceof SpectatorListMessage) { return translate((SpectatorListMessage) m, locale); }
-        if (m instanceof SmsgMessage) { return translate((SmsgMessage) m, locale); }
+        if (m instanceof SpectatorListMessage) return translate((SpectatorListMessage)m, locale);
         else
         {
             return super.translate(m, locale);
@@ -96,36 +72,15 @@ public class TspecProtocol extends TetrinetProtocol
 
     public String translate(SpectatorListMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("speclist #");
         message.append(m.getChannel());
-
-        for (String spectator : m.getSpectators())
+        Iterator specators = m.getSpectators().iterator();
+        while (specators.hasNext())
         {
             message.append(" ");
-            message.append(spectator);
+            message.append(specators.next());
         }
-        
-        return message.toString();
-    }
-
-    public String translate(SmsgMessage m, Locale locale)
-    {
-        StringBuilder message = new StringBuilder();
-        String name = ((Client) m.getSource()).getUser().getName();
-
-        if (m.isPrivate())
-        {
-            message.append("smsg ");
-            message.append(name);
-            message.append(" ");
-            message.append(m.getText());
-        }
-        else
-        {
-            message.append(super.translate(m, locale));
-        }
-
         return message.toString();
     }
 
@@ -133,7 +88,7 @@ public class TspecProtocol extends TetrinetProtocol
     {
         if (m.getSlot() == 0)
         {
-            StringBuilder message = new StringBuilder();
+            StringBuffer message = new StringBuffer();
             message.append("specjoin ");
             message.append(m.getName());
             return message.toString();
@@ -148,7 +103,7 @@ public class TspecProtocol extends TetrinetProtocol
     {
         if (m.getSlot() == 0)
         {
-            StringBuilder message = new StringBuilder();
+            StringBuffer message = new StringBuffer();
             message.append("specleave ");
             message.append(m.getName());
             return message.toString();
@@ -157,6 +112,161 @@ public class TspecProtocol extends TetrinetProtocol
         {
             return super.translate(m, locale);
         }
+    }
+
+    /*public String translate(PlineMessage m)
+    {
+        return null;
+    }
+
+    public String translate(PlineActMessage m)
+    {
+        return null;
+    }
+
+    public String translate(TeamMessage m)
+    {
+        return null;
+    }
+
+    public String translate(JoinMessage m)
+    {
+        return null;
+    }
+
+    public String translate(LeaveMessage m)
+    {
+        return null;
+    }
+
+    public String translate(PlayerNumMessage m)
+    {
+        return null;
+    }
+
+    public String translate(StartGameMessage m)
+    {
+        return null;
+    }
+
+    public String translate(NewGameMessage m)
+    {
+        return null;
+    }
+
+    public String translate(EndGameMessage m)
+    {
+        return null;
+    }
+
+    public String translate(PauseMessage m)
+    {
+        return null;
+    }
+
+    public String translate(ResumeMessage m)
+    {
+        return null;
+    }
+
+    public String translate(GmsgMessage m)
+    {
+        return null;
+    }
+
+    public String translate(LevelMessage m)
+    {
+        return null;
+    }
+
+    public String translate(FieldMessage m)
+    {
+        return null;
+    }
+
+    public String translate(PlayerLostMessage m)
+    {
+        return null;
+    }
+
+    public String translate(DisconnectedMessage m)
+    {
+        return null;
+    }
+
+    public String translate(AddPlayerMessage m)
+    {
+        return null;
+    }
+
+    public String translate(CommandMessage m)
+    {
+        return null;
+    }
+
+    public String translate(OneLineAddedMessage m)
+    {
+        return null;
+    }
+
+    public String translate(TwoLinesAddedMessage m)
+    {
+        return null;
+    }
+
+    public String translate(FourLinesAddedMessage m)
+    {
+        return null;
+    }
+
+    public String translate(AddLineMessage m)
+    {
+        return null;
+    }
+
+    public String translate(ClearLineMessage m)
+    {
+        return null;
+    }
+
+    public String translate(NukeFieldMessage m)
+    {
+        return null;
+    }
+
+    public String translate(RandomClearMessage m)
+    {
+        return null;
+    }
+
+    public String translate(SwitchFieldsMessage m)
+    {
+        return null;
+    }
+
+    public String translate(ClearSpecialsMessage m)
+    {
+        return null;
+    }
+
+    public String translate(GravityMessage m)
+    {
+        return null;
+    }
+
+    public String translate(BlockQuakeMessage m)
+    {
+        return null;
+    }
+
+    public String translate(BlockBombMessage m)
+    {
+        return null;
+    }*/
+
+    public String toString()
+    {
+        return "[Protocol name=" + getName() + "]";
     }
 
 }

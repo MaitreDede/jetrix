@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,6 +19,8 @@
 
 package net.jetrix.commands;
 
+import java.io.*;
+import java.util.*;
 import net.jetrix.*;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
@@ -29,27 +31,49 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class MotdCommand extends AbstractCommand
+public class MotdCommand implements Command
 {
-    public String getAlias()
+    private int accessLevel = 0;
+
+    public String[] getAliases()
     {
-        return "motd";
+        return (new String[] { "motd" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
+    }
+
+    public String getUsage(Locale locale)
+    {
+        return "/motd";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.motd.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
-        ServerConfig config = Server.getInstance().getConfig();
+        Client client = (Client)m.getSource();
+        ServerConfig conf = Server.getInstance().getConfig();
 
-        // send the message of the day line by line
-        if (config.getMessageOfTheDay() != null)
+        try
         {
-            String[] lines = config.getMessageOfTheDay().split("\n");
-
-            for (String line : lines)
+            BufferedReader motd = new BufferedReader(new StringReader( conf.getMessageOfTheDay() ));
+            String motdline;
+            while( (motdline = motd.readLine() ) != null )
             {
-                client.send(new PlineMessage("<gray>" + line));
+                Message response = new PlineMessage("<gray>" + motdline);
+                client.sendMessage(response);
             }
+            motd.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
         }
     }
 }

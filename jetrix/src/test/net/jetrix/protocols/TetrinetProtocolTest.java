@@ -19,8 +19,6 @@
 
 package net.jetrix.protocols;
 
-import static net.jetrix.protocols.TetrinetProtocol.*;
-
 import java.util.*;
 import junit.framework.*;
 import net.jetrix.*;
@@ -43,240 +41,75 @@ public class TetrinetProtocolTest extends TestCase
         locale = new Locale("fr");
     }
 
-    public void testTranslatePline()
+    public void testTranslate1()
     {
-        PlineMessage message = new PlineMessage();
-        message.setSlot(1);
-        message.setText("Hello Jetrix!");
-        assertEquals("pline 1 Hello Jetrix!", protocol.translate(message, locale));
+        PlineMessage msg = new PlineMessage();
+        msg.setSlot(1);
+        msg.setText("Hello JetriX!");
+        assertEquals("pline 1 Hello JetriX!", protocol.translate(msg, locale));
     }
 
-    public void testGetMessagePline()
+    public void testTranslate2()
     {
-        String raw = "pline 1 hello world!";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", PlineMessage.class, message.getClass());
-
-        PlineMessage pline = (PlineMessage) message;
-        assertEquals("slot", 1, pline.getSlot());
-        assertEquals("text", "hello world!", pline.getText(Locale.ENGLISH));
+        JoinMessage msg = new JoinMessage();
+        msg.setSlot(1);
+        msg.setName("Smanux");
+        assertEquals("playerjoin 1 Smanux", protocol.translate(msg, locale));
     }
 
-    public void testGetMessageCommand()
-    {
-        String raw = "pline 1 /move 1 2";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", CommandMessage.class, message.getClass());
-
-        CommandMessage command = (CommandMessage) message;
-        assertEquals("slot", 1, command.getSlot());
-        assertEquals("command", "move", command.getCommand());
-        assertEquals("text", "1 2", command.getText(Locale.ENGLISH));
-        assertEquals("parameter count", 2, command.getParameterCount());
-        assertEquals("1st parameter", "1", command.getParameter(0));
-        assertEquals("2nd parameter", "2", command.getParameter(1));
-    }
-
-    public void testTranslatePlineAct()
-    {
-        PlineActMessage message = new PlineActMessage();
-        message.setSlot(1);
-        message.setText("feels faster");
-        assertEquals("plineact 1 feels faster", protocol.translate(message, locale));
-    }
-
-    public void testGetMessagePlineAct()
-    {
-        String raw = "plineact 1 says hello world!";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", PlineActMessage.class, message.getClass());
-
-        PlineActMessage plineact = (PlineActMessage) message;
-        assertEquals("slot", 1, plineact.getSlot());
-        assertEquals("text", "says hello world!", plineact.getText(Locale.ENGLISH));
-    }
-
-    public void testTranslateGmsg()
-    {
-        GmsgMessage message = new GmsgMessage();
-        message.setText("<Smanux> hello world!");
-        assertEquals("gmsg <Smanux> hello world!", protocol.translate(message, locale));
-    }
-
-    public void testGetMessageGmsg()
-    {
-        String raw = "gmsg hello world!";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", GmsgMessage.class, message.getClass());
-
-        GmsgMessage gmsg = (GmsgMessage) message;
-        assertEquals("slot", 1, gmsg.getSlot());
-        assertEquals("text", "hello world!", gmsg.getText(Locale.ENGLISH));
-    }
-
-    public void testTranslatePlayerJoin()
-    {
-        JoinMessage message = new JoinMessage();
-        message.setSlot(1);
-        message.setName("Smanux");
-        assertEquals("playerjoin 1 Smanux", protocol.translate(message, locale));
-    }
-
-    public void testGetMessagePlayerJoin()
-    {
-        String raw = "playerjoin 1 Smanux";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", JoinMessage.class, message.getClass());
-
-        JoinMessage playerjoin = (JoinMessage) message;
-        assertEquals("slot", 1, playerjoin.getSlot());
-        assertEquals("name", "Smanux", playerjoin.getName());
-    }
-
-    public void testTranslateTeam1()
+    public void testTranslate3()
     {
         TeamMessage msg1 = new TeamMessage();
         msg1.setSlot(1);
         msg1.setName("LFJR");
         assertEquals("team 1 LFJR", protocol.translate(msg1, locale));
-    }
 
-    public void testTranslateTeam2()
-    {
         TeamMessage msg2 = new TeamMessage();
         msg2.setSlot(1);
         assertEquals("team 1", protocol.translate(msg2, locale));
     }
 
-    public void testGetMessageTeam1()
+    public void testTranslate4()
     {
-        String raw = "team 1 LFJR";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", TeamMessage.class, message.getClass());
-
-        TeamMessage team = (TeamMessage) message;
-        assertEquals("slot", 1, team.getSlot());
-        assertEquals("name", "LFJR", team.getName());
+        LeaveMessage msg = new LeaveMessage();
+        msg.setSlot(1);
+        assertEquals("playerleave 1", protocol.translate(msg, locale));
     }
 
-    public void testGetMessageTeam2()
+    public void testTranslate5()
     {
-        String raw = "team 1";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", TeamMessage.class, message.getClass());
-
-        TeamMessage team = (TeamMessage) message;
-        assertEquals("slot", 1, team.getSlot());
-        assertEquals("name", null, team.getName());
+        PlayerNumMessage msg = new PlayerNumMessage();
+        msg.setSlot(1);
+        assertEquals("playernum 1", protocol.translate(msg, locale));
     }
 
-    public void testTranslatePlayerLeave()
+    public void testTranslate6()
     {
-        LeaveMessage message = new LeaveMessage();
-        message.setSlot(1);
-        assertEquals("playerleave 1", protocol.translate(message, locale));
+        EndGameMessage msg = new EndGameMessage();
+        assertEquals("endgame", protocol.translate(msg, locale));
     }
 
-    public void testGetMessagePlayerLeave()
+    public void testTranslate7()
     {
-        String raw = "playerleave 1";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", LeaveMessage.class, message.getClass());
-
-        LeaveMessage leave = (LeaveMessage) message;
-        assertEquals("slot", 1, leave.getSlot());
+        PlayerLostMessage msg = new PlayerLostMessage();
+        msg.setSlot(1);
+        assertEquals("playerlost 1", protocol.translate(msg, locale));
     }
 
-    public void testTranslatePlayerNum()
+    public void testTranslate8()
     {
-        PlayerNumMessage message = new PlayerNumMessage(1);
-        assertEquals("playernum 1", protocol.translate(message, locale));
+        FieldMessage msg = new FieldMessage();
+        msg.setSlot(1);
+        msg.setField("XYZABCD");
+        assertEquals("f 1 XYZABCD", protocol.translate(msg, locale));
     }
 
-    public void testTranslateEndGame()
+    public void testTranslate9()
     {
-        EndGameMessage message = new EndGameMessage();
-        assertEquals("endgame", protocol.translate(message, locale));
+        PlineActMessage msg = new PlineActMessage();
+        msg.setSlot(1);
+        msg.setText("feels faster");
+        assertEquals("plineact 1 feels faster", protocol.translate(msg, locale));
     }
 
-    public void testTranslatePlayerLost()
-    {
-        PlayerLostMessage message = new PlayerLostMessage();
-        message.setSlot(1);
-        assertEquals("playerlost 1", protocol.translate(message, locale));
-    }
-
-    public void testTranslateField()
-    {
-        FieldMessage message = new FieldMessage();
-        message.setSlot(1);
-        message.setField("XYZABCD");
-        assertEquals("f 1 XYZABCD", protocol.translate(message, locale));
-    }
-
-    public void testGetMessageField()
-    {
-        String raw = "f 1 XYZABCD";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", FieldMessage.class, message.getClass());
-
-        FieldMessage field = (FieldMessage) message;
-        assertEquals("slot", 1, field.getSlot());
-        assertEquals("field", "XYZABCD", field.getField());
-    }
-
-    public void testTranslateLevel()
-    {
-        LevelMessage message = new LevelMessage();
-        message.setSlot(1);
-        message.setLevel(50);
-        assertEquals("lvl 1 50", protocol.translate(message, locale));
-    }
-
-    public void testGetMessageLevel()
-    {
-        String raw = "lvl 1 50";
-        Message message = protocol.getMessage(raw);
-
-        assertNotNull("message not parsed", message);
-        assertEquals("message class", LevelMessage.class, message.getClass());
-
-        LevelMessage level = (LevelMessage) message;
-        assertEquals("slot", 1, level.getSlot());
-        assertEquals("level", 50, level.getLevel());
-    }
-
-    public void testEncode()
-    {
-        byte[] ip = {127, 0, 0, 1};
-        String nickname = "Smanux";
-        String version = "1.14";
-
-        assertEquals("80C210B3134A85CF71E46FD4C123A83D9E22A2F512769FE5", encode(nickname, version, ip, false));
-    }
-
-    public void testDecode()
-    {
-        String init = "80C210B3134A85CF71E46FD4C123A83D9E22A2F512769FE5";
-
-        assertEquals("decoded string", "tetrisstart Smanux 1.13", decode(init));
-    }
 }

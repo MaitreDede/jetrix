@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,18 +30,35 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class VersionCommand extends AbstractCommand
+public class VersionCommand implements Command
 {
-    public String getAlias()
+    private int accessLevel = 0;
+
+    public String[] getAliases()
     {
-        return "version";
+        return (new String[] { "version" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
+    }
+
+    public String getUsage(Locale locale)
+    {
+        return "/version";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.version.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
-        String version1 = "<darkBlue><b>Jetrix/" + ServerConfig.VERSION + " (build:@build.time@)";
+        String version1 = "<darkBlue><b>JetriX/" + ServerConfig.VERSION + " (build:@build.time@)";
         String version2 = "<purple>VM<darkBlue>: " + System.getProperty("java.vm.name") 
                           + " " + System.getProperty("java.vm.version") 
                           + " " + System.getProperty("java.vm.info");
@@ -49,8 +66,8 @@ public class VersionCommand extends AbstractCommand
                           + " " + System.getProperty("os.version") 
                           + "; " + System.getProperty("os.arch");
 
-        client.send(new PlineMessage(version1));
-        client.send(new PlineMessage(version2));
-        client.send(new PlineMessage(version3));
+        client.sendMessage(new PlineMessage(version1));
+        client.sendMessage(new PlineMessage(version2));
+        client.sendMessage(new PlineMessage(version3));
     }
 }

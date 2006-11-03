@@ -32,7 +32,7 @@ import java.util.*;
 public class SpectatorListMessage extends Message
 {
     private String channel;
-    private Collection<String> spectators;
+    private Collection spectators;
 
     public String getChannel()
     {
@@ -44,12 +44,12 @@ public class SpectatorListMessage extends Message
         this.channel = channel;
     }
 
-    public Collection<String> getSpectators()
+    public Collection getSpectators()
     {
         return spectators;
     }
 
-    public void setSpectators(Collection<String> spectators)
+    public void setSpectators(Collection spectators)
     {
         this.spectators = spectators;
     }

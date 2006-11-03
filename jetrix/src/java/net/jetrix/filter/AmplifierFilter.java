@@ -20,7 +20,6 @@
 package net.jetrix.filter;
 
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
@@ -37,41 +36,29 @@ public class AmplifierFilter extends MessageFilter
 {
     private int factor = 2;
 
-    public void init()
+    public void init(FilterConfig conf)
     {
-        // read the parameters
-        factor = config.getInt("factor", factor);
+        // reading parameters
+        try {
+            this.factor = Integer.parseInt(conf.getParameter("factor"));
+        }
+        catch (NumberFormatException e) {}
     }
 
-    public void process(Message m, List<Message> out)
+    public void process(Message m, List out)
     {
         if (m instanceof SpecialMessage)
         {
-            for (int i = 0; i < factor; i++)
-            {
-                out.add(m);
-            }
+            for (int i = 0; i < factor; i++) { out.add(m); }
         }
     }
 
-    public String getName()
-    {
-        return "Amplifier";
-    }
+    public String getName() { return "Amplifier"; }
 
-    public String getDescription()
-    {
-        return "Amplifies specials by sending them twice or more.";
-    }
+    public String getDescription() { return "Amplifies specials by sending them twice or more."; }
 
-    public String getVersion()
-    {
-        return "1.0";
-    }
+    public String getVersion() { return "1.0"; }
 
-    public String getAuthor()
-    {
-        return "Emmanuel Bourg";
-    }
+    public String getAuthor() { return "Emmanuel Bourg"; }
 
 }

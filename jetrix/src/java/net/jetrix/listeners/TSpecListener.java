@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,8 +23,6 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import net.jetrix.*;
-import net.jetrix.protocols.TspecProtocol;
-import net.jetrix.protocols.TetrinetProtocol;
 import net.jetrix.clients.*;
 import net.jetrix.messages.*;
 
@@ -36,26 +34,31 @@ import net.jetrix.messages.*;
  */
 public class TSpecListener extends TetrinetListener
 {
-    public TSpecListener()
-    {
-        port = 31458;
-    }
-
     public String getName()
     {
         return "tspec";
     }
 
+    public int getPort()
+    {
+        return 31458;
+    }
+
     public Client getClient(Socket socket) throws Exception
     {
-        TetrinetProtocol protocol = ProtocolManager.getInstance().getProtocol(TetrinetProtocol.class);
-        String init = protocol.readLine(new InputStreamReader(socket.getInputStream()));
+        String init = null;
 
-        String dec = TetrinetProtocol.decode(init);
+        try
+        {
+            init = readLine(socket);
+        }
+        catch (IOException e) { e.printStackTrace(); }
 
-        // init string parsing "tetristart <nickname> <version>"
+        String dec = decode(init);
+
+        // init string parsing "team <nickname> <password>"
         StringTokenizer st = new StringTokenizer(dec, " ");
-        List<String> tokens = new ArrayList<String>();
+        List tokens = new ArrayList();
 
         while (st.hasMoreTokens())
         {
@@ -67,18 +70,18 @@ public class TSpecListener extends TetrinetListener
             return null;
         }
 
-        TSpecClient client = new TSpecClient();
+        TetrinetClient client = new TetrinetClient();
         User user = new User();
-        user.setName(tokens.get(1));
+        user.setName((String)tokens.get(1));
         user.setSpectator();
         client.setSocket(socket);
         client.setUser(user);
-        client.setProtocol(ProtocolManager.getInstance().getProtocol(TspecProtocol.class));
+        client.setProtocol(ProtocolManager.getInstance().getProtocol("net.jetrix.protocols.TspecProtocol"));
 
         if (tokens.size() > 3)
         {
             Message m = new NoConnectingMessage("No space allowed in nickname !");
-            client.send(m);
+            client.sendMessage(m);
             return null;
         }
 

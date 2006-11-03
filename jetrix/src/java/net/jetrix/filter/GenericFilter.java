@@ -20,8 +20,6 @@
 package net.jetrix.filter;
 
 import java.util.*;
-import java.util.logging.*;
-
 import net.jetrix.*;
 import net.jetrix.messages.*;
 
@@ -36,33 +34,31 @@ import net.jetrix.messages.*;
  */
 public abstract class GenericFilter extends MessageFilter
 {
-    protected Logger log = Logger.getLogger("net.jetrix");
 
-    public final void process(Message m, List<Message> out)
+    public final void process(Message m, List out)
     {
         // overwritable pre processing
         onMessage(m);
 
         // message dispatching
-        if (m instanceof SpecialMessage)           { onMessage((SpecialMessage) m, out); }
-        else if (m instanceof FieldMessage)        { onMessage((FieldMessage) m, out); }
-        else if (m instanceof CommandMessage)      { onMessage((CommandMessage) m, out); }
-        else if (m instanceof PlineMessage)        { onMessage((PlineMessage) m, out); }
-        else if (m instanceof LevelMessage)        { onMessage((LevelMessage) m, out); }
-        else if (m instanceof PlayerLostMessage)   { onMessage((PlayerLostMessage) m, out); }
-        else if (m instanceof PlineActMessage)     { onMessage((PlineActMessage) m, out); }
-        else if (m instanceof TeamMessage)         { onMessage((TeamMessage) m, out); }
-        else if (m instanceof JoinMessage)         { onMessage((JoinMessage) m, out); }
-        else if (m instanceof LeaveMessage)        { onMessage((LeaveMessage) m, out); }
-        else if (m instanceof PlayerNumMessage)    { onMessage((PlayerNumMessage) m, out); }
-        else if (m instanceof StartGameMessage)    { onMessage((StartGameMessage) m, out); }
-        else if (m instanceof StopGameMessage)     { onMessage((StopGameMessage) m, out); }
-        else if (m instanceof NewGameMessage)      { onMessage((NewGameMessage) m, out); }
-        else if (m instanceof EndGameMessage)      { onMessage((EndGameMessage) m, out); }
-        else if (m instanceof PauseMessage)        { onMessage((PauseMessage) m, out); }
-        else if (m instanceof ResumeMessage)       { onMessage((ResumeMessage) m, out); }
-        else if (m instanceof GmsgMessage)         { onMessage((GmsgMessage) m, out); }
-        else if (m instanceof PlayerWonMessage)    { onMessage((PlayerWonMessage) m, out); }
+        if (m instanceof SpecialMessage)           onMessage((SpecialMessage)m, out);
+        else if (m instanceof FieldMessage)        onMessage((FieldMessage)m, out);
+        else if (m instanceof PlineMessage)        onMessage((PlineMessage)m, out);
+        else if (m instanceof LevelMessage)        onMessage((LevelMessage)m, out);
+        else if (m instanceof PlayerLostMessage)   onMessage((PlayerLostMessage)m, out);
+        else if (m instanceof PlineActMessage)     onMessage((PlineActMessage)m, out);
+        else if (m instanceof TeamMessage)         onMessage((TeamMessage)m, out);
+        else if (m instanceof JoinMessage)         onMessage((JoinMessage)m, out);
+        else if (m instanceof LeaveMessage)        onMessage((LeaveMessage)m, out);
+        else if (m instanceof PlayerNumMessage)    onMessage((PlayerNumMessage)m, out);
+        else if (m instanceof StartGameMessage)    onMessage((StartGameMessage)m, out);
+        else if (m instanceof StopGameMessage)     onMessage((StopGameMessage)m, out);
+        else if (m instanceof NewGameMessage)      onMessage((NewGameMessage)m, out);
+        else if (m instanceof EndGameMessage)      onMessage((EndGameMessage)m, out);
+        else if (m instanceof PauseMessage)        onMessage((PauseMessage)m, out);
+        else if (m instanceof ResumeMessage)       onMessage((ResumeMessage)m, out);
+        else if (m instanceof GmsgMessage)         onMessage((GmsgMessage)m, out);
+        else if (m instanceof PlayerWonMessage)    onMessage((PlayerWonMessage)m, out);
         else
         {
             onMessage(m, out);
@@ -76,91 +72,91 @@ public abstract class GenericFilter extends MessageFilter
      */
     public void onMessage(Message m) { }
 
-    public void onMessage(Message m, List<Message> out) { out.add(m); }
+    public void onMessage(Message m, List out) { out.add(m); }
 
-    public void onMessage(PlineMessage m, List<Message> out)
+    public void onMessage(PlineMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(PlineActMessage m, List<Message> out)
+    public void onMessage(PlineActMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(TeamMessage m, List<Message> out)
+    public void onMessage(TeamMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(JoinMessage m, List<Message> out)
+    public void onMessage(JoinMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(LeaveMessage m, List<Message> out)
+    public void onMessage(LeaveMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(PlayerNumMessage m, List<Message> out)
+    public void onMessage(PlayerNumMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(StartGameMessage m, List<Message> out)
+    public void onMessage(StartGameMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(StopGameMessage m, List<Message> out)
+    public void onMessage(StopGameMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(NewGameMessage m, List<Message> out)
+    public void onMessage(NewGameMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(EndGameMessage m, List<Message> out)
+    public void onMessage(EndGameMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(PauseMessage m, List<Message> out)
+    public void onMessage(PauseMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(ResumeMessage m, List<Message> out)
+    public void onMessage(ResumeMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(GmsgMessage m, List<Message> out)
+    public void onMessage(GmsgMessage m, List out)
     {
         out.add(m);
     }
 
-    private void onMessage(SpecialMessage m, List<Message> out)
+    private void onMessage(SpecialMessage m, List out)
     {
         // message pre-processing
-        onSpecial(m, out);
+        onSpecial(m);
 
         // message dispatching
-        if (m instanceof OneLineAddedMessage)        { onMessage((OneLineAddedMessage) m, out); }
-        else if (m instanceof TwoLinesAddedMessage)  { onMessage((TwoLinesAddedMessage) m, out); }
-        else if (m instanceof FourLinesAddedMessage) { onMessage((FourLinesAddedMessage) m, out); }
-        else if (m instanceof AddLineMessage)        { onMessage((AddLineMessage) m, out); }
-        else if (m instanceof ClearLineMessage)      { onMessage((ClearLineMessage) m, out); }
-        else if (m instanceof ClearSpecialsMessage)  { onMessage((ClearSpecialsMessage) m, out); }
-        else if (m instanceof RandomClearMessage)    { onMessage((RandomClearMessage) m, out); }
-        else if (m instanceof BlockQuakeMessage)     { onMessage((BlockQuakeMessage) m, out); }
-        else if (m instanceof BlockBombMessage)      { onMessage((BlockBombMessage) m, out); }
-        else if (m instanceof GravityMessage)        { onMessage((GravityMessage) m, out); }
-        else if (m instanceof NukeFieldMessage)      { onMessage((NukeFieldMessage) m, out); }
-        else if (m instanceof SwitchFieldsMessage)   { onMessage((SwitchFieldsMessage) m, out); }
+        if (m instanceof OneLineAddedMessage)        onMessage((OneLineAddedMessage)m, out);
+        else if (m instanceof TwoLinesAddedMessage)  onMessage((TwoLinesAddedMessage)m, out);
+        else if (m instanceof FourLinesAddedMessage) onMessage((FourLinesAddedMessage)m, out);
+        else if (m instanceof AddLineMessage)        onMessage((AddLineMessage)m, out);
+        else if (m instanceof ClearLineMessage)      onMessage((ClearLineMessage)m, out);
+        else if (m instanceof ClearSpecialsMessage)  onMessage((ClearSpecialsMessage)m, out);
+        else if (m instanceof RandomClearMessage)    onMessage((RandomClearMessage)m, out);
+        else if (m instanceof BlockQuakeMessage)     onMessage((BlockQuakeMessage)m, out);
+        else if (m instanceof BlockBombMessage)      onMessage((BlockBombMessage)m, out);
+        else if (m instanceof GravityMessage)        onMessage((GravityMessage)m, out);
+        else if (m instanceof NukeFieldMessage)      onMessage((NukeFieldMessage)m, out);
+        else if (m instanceof SwitchFieldsMessage)   onMessage((SwitchFieldsMessage)m, out);
     }
 
     /**
@@ -168,89 +164,99 @@ public abstract class GenericFilter extends MessageFilter
      * specials filtered and allow custom processing for all specials
      * (lines added, blockbomb switchs, etc...).
      */
-    public void onSpecial(SpecialMessage m, List<Message> out) { }
+    public void onSpecial(SpecialMessage m) { }
 
-    public void onMessage(LevelMessage m, List<Message> out)
+    public void onMessage(LevelMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(FieldMessage m, List<Message> out)
+    public void onMessage(FieldMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(PlayerLostMessage m, List<Message> out)
+    public void onMessage(PlayerLostMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(PlayerWonMessage m, List<Message> out)
+    public void onMessage(PlayerWonMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(CommandMessage m, List<Message> out)
+    public void onMessage(DisconnectedMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(OneLineAddedMessage m, List<Message> out)
+    public void onMessage(AddPlayerMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(TwoLinesAddedMessage m, List<Message> out)
+    public void onMessage(CommandMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(FourLinesAddedMessage m, List<Message> out)
+    public void onMessage(OneLineAddedMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(AddLineMessage m, List<Message> out)
+    public void onMessage(TwoLinesAddedMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(ClearLineMessage m, List<Message> out)
+    public void onMessage(FourLinesAddedMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(NukeFieldMessage m, List<Message> out)
+    public void onMessage(AddLineMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(RandomClearMessage m, List<Message> out)
+    public void onMessage(ClearLineMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(SwitchFieldsMessage m, List<Message> out)
+    public void onMessage(NukeFieldMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(ClearSpecialsMessage m, List<Message> out)
+    public void onMessage(RandomClearMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(GravityMessage m, List<Message> out)
+    public void onMessage(SwitchFieldsMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(BlockQuakeMessage m, List<Message> out)
+    public void onMessage(ClearSpecialsMessage m, List out)
     {
         out.add(m);
     }
 
-    public void onMessage(BlockBombMessage m, List<Message> out)
+    public void onMessage(GravityMessage m, List out)
+    {
+        out.add(m);
+    }
+
+    public void onMessage(BlockQuakeMessage m, List out)
+    {
+        out.add(m);
+    }
+
+    public void onMessage(BlockBombMessage m, List out)
     {
         out.add(m);
     }

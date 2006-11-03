@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,11 +29,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class TellCommand extends AbstractCommand implements ParameterCommand
+public class TellCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
         return (new String[] { "tell", "msg", "cmsg", "send" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -42,42 +49,67 @@ public class TellCommand extends AbstractCommand implements ParameterCommand
                + " <" + Language.getText("command.params.message", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 2;
+        return Language.getText("command.tell.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        String cmd = m.getCommand();
+        Client client = (Client)m.getSource();
 
-        String targetName = m.getParameter(0);
-        Client target = m.getClientParameter(0);
-
-        if (target == null)
+        if (m.getParameterCount() >= 2)
         {
-            // no player found
-            client.send(new PlineMessage("command.player_not_found", targetName));
+            String targetName = m.getParameter(0);
+            Client target = null;
+
+            // checking if the second parameter is a slot number
+            try
+            {
+                int slot = Integer.parseInt(targetName);
+                if (slot >= 1 && slot <= 6)
+                {
+                    Channel channel = client.getChannel();
+                    target = channel.getClient(slot);
+                }
+            }
+            catch (NumberFormatException e) {}
+
+            if (target == null)
+            {
+                // target is still null, the second parameter is a playername
+                ClientRepository repository = ClientRepository.getInstance();
+                target = repository.getClient(targetName);
+            }
+
+            if (target == null)
+            {
+                // no player found
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.player_not_found", new Object[] { targetName });
+                client.sendMessage(response);
+            }
+            else
+            {
+                // player found
+                PlineMessage response = new PlineMessage();
+                String privateMessage = m.getText().substring(targetName.length() + 1);
+                response.setKey("command.tell.format", new Object[] { client.getUser().getName(), privateMessage });
+                target.sendMessage(response);
+
+                target.getUser().setProperty("command.tell.reply_to", client.getUser().getName());
+            }
         }
         else
         {
-            // player found
+            // not enough parameters
+            Locale locale = client.getUser().getLocale();
             PlineMessage response = new PlineMessage();
-            String privateMessage = m.getText().substring(targetName.length() + 1);
-            response.setKey("command.tell.format", client.getUser().getName(), privateMessage);
-            response.setSource(client);
-            target.send(response);
-
-            target.getUser().setProperty("command.tell.reply_to", client.getUser().getName());
-
-            // afk message
-            if (target.getUser().getStatus() == User.STATUS_AFK)
-            {
-                String awayMessage = (String) target.getUser().getProperty("command.away.message");
-                PlineMessage away = new PlineMessage();
-                away.setKey("command.away.player_unavailable" + (awayMessage != null ? "2" : ""), target.getUser().getName(), awayMessage);
-                client.send(away);
-            }
+            String message = "<red>" + cmd + " <blue><" + Language.getText("command.params.player_name_num", locale) + ">"
+                + " <" + Language.getText("command.params.message", locale) + ">";
+            response.setText(message);
+            client.sendMessage(response);
         }
     }
 

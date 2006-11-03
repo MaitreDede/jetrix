@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,11 +29,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class ReplyCommand extends AbstractCommand implements ParameterCommand
+public class ReplyCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
         return (new String[] { "reply", "r" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -41,53 +48,58 @@ public class ReplyCommand extends AbstractCommand implements ParameterCommand
         return "/reply <" + Language.getText("command.params.message", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 1;
+        return Language.getText("command.reply.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        String cmd = m.getCommand();
+        Client client = (Client)m.getSource();
 
-        String targetName = (String) client.getUser().getProperty("command.tell.reply_to");
-
-        if (targetName == null)
+        if (m.getParameterCount() >= 1)
         {
-            // no previous message
-            PlineMessage response = new PlineMessage();
-            response.setKey("command.reply.no_previous_message");
-            client.send(response);
-            return;
-        }
+            String targetName = (String)client.getUser().getProperty("command.tell.reply_to");
 
-        ClientRepository repository = ClientRepository.getInstance();
-        Client target = repository.getClient(targetName);
+            // aucun message précédent
+            if (targetName == null)
+            {
+                // no previous message
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.reply.no_previous_message");
+                client.sendMessage(response);
+                return;
+            }
 
-        if (target == null)
-        {
-            // previous user no longer connected
-            client.send(new PlineMessage("command.player_not_found", targetName));
+            ClientRepository repository = ClientRepository.getInstance();
+            Client target = repository.getClient(targetName);
+
+            if (target == null)
+            {
+                // previous user no longer connected
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.player_not_found", new Object[] { targetName });
+                client.sendMessage(response);
+            }
+            else
+            {
+                // player found
+                PlineMessage response = new PlineMessage();
+                String privateMessage = m.getText();
+                response.setKey("command.tell.format", new Object[] { client.getUser().getName(), privateMessage });
+                target.sendMessage(response);
+
+                target.getUser().setProperty("command.tell.reply_to", client.getUser());
+            }
         }
         else
         {
-            // player found
+            // not enough parameters
             PlineMessage response = new PlineMessage();
-            String privateMessage = m.getText();
-            response.setKey("command.tell.format", client.getUser().getName(), privateMessage);
-            response.setSource(client);
-            target.send(response);
-
-            target.getUser().setProperty("command.tell.reply_to", client.getUser());
-
-            // afk message
-            if (target.getUser().getStatus() == User.STATUS_AFK)
-            {
-                String awayMessage = (String) target.getUser().getProperty("command.away.message");
-                PlineMessage away = new PlineMessage();
-                away.setKey("command.away.player_unavailable" + (awayMessage != null ? "2" : ""), target.getUser().getName(), awayMessage);
-                client.send(away);
-            }
+            String message = "<red>" + cmd + "<blue><message>";
+            response.setText(message);
+            client.sendMessage(response);
         }
     }
 

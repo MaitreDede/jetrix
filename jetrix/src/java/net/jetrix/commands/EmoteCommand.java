@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +20,6 @@
 package net.jetrix.commands;
 
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.messages.*;
 
@@ -30,11 +29,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class EmoteCommand extends AbstractCommand
+public class EmoteCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
-        return (new String[]{"emote", "me"});
+        return (new String[] { "me", "emote" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -42,15 +48,18 @@ public class EmoteCommand extends AbstractCommand
         return "/me";
     }
 
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.emote.description", locale);
+    }
+
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
         String emote = m.getText();
 
         PlineActMessage response = new PlineActMessage(emote);
         response.setSlot(client.getChannel().getClientSlot(client));
-        response.setSource(client);
-        
-        client.getChannel().send(response);
+        client.getChannel().sendMessage(response);
     }
 }

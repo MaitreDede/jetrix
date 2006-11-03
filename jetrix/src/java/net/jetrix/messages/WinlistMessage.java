@@ -20,7 +20,6 @@
 package net.jetrix.messages;
 
 import net.jetrix.*;
-import net.jetrix.winlist.Score;
 
 import java.util.*;
 
@@ -32,14 +31,14 @@ import java.util.*;
  */
 public class WinlistMessage extends Message
 {
-    private List<Score> scores;
+    private List scores;
 
-    public List<Score> getScores()
+    public List getScores()
     {
         return scores;
     }
 
-    public void setScores(List<Score> scores)
+    public void setScores(List scores)
     {
         this.scores = scores;
     }

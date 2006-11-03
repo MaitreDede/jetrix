@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -36,82 +36,58 @@ public interface Client extends Runnable, Destination
     /**
      * Return the protocol used by this client.
      */
-    Protocol getProtocol();
+    public Protocol getProtocol();
 
     /**
      * Return the channel this client subscribed to.
      */
-    Channel getChannel();
+    public Channel getChannel();
 
     /**
      * Set the channel.
      */
-    void setChannel(Channel channel);
-
-    /**
-     * Tell if the client supports multiple channels simultaneously.
-     *
-     * @since 0.2
-     */
-    boolean supportsMultipleChannels();
-
-    /**
-     * Tell if the client can be affected automatically to a channel
-     * on connecting to the server.
-     *
-     * @since 0.2
-     */
-    boolean supportsAutoJoin();
+    public void setChannel(Channel channel);
 
     /**
      * Return the user associated to this client.
      */
-    User getUser();
+    public User getUser();
 
     /**
      * Return the type of the client.
      */
-    String getType();
+    public String getType();
 
     /**
      * Return the version number of this client.
      */
-    String getVersion();
+    public String getVersion();
 
     /**
      * Return the Internet address of this client.
      */
-    InetAddress getInetAddress();
+    public InetAddress getInetAddress();
 
     /**
      * Return the time of the connection to the server.
      */
-    Date getConnectionTime();
-
-    /**
-     * Return the time in miliseconds of inactivity.
-     *
-     * @since 0.2
-     */
-    long getIdleTime();
+    public Date getConnectionTime();
 
     /**
      * Send a message to the client. The raw message property must be set.
      *
-     * @param message the message to send
+     * @param m message to send
      */
-    void send(Message message);
+    public void sendMessage(Message m);
 
     /**
      * Receive a message sent by the client.
-     *
-     * @since 0.3
      */
-    Message receive() throws IOException;
+    public Message receiveMessage() throws IOException;
 
     /**
      * Trigger the disconnection of this client.
      */
-    void disconnect();
+    public void disconnect();
 
 }

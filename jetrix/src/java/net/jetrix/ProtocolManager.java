@@ -23,7 +23,7 @@ import java.util.*;
 
 /**
  * Manages protocols. Protocol instances are obtained by calling the
- * getProtocol() method. The ProtocolManager is in charge to serve the
+ * getProtocol() method. The ProtocolManager is in charge to serve the 
  * same unique instance of the specified protocol.
  *
  * @author Emmanuel Bourg
@@ -32,11 +32,11 @@ import java.util.*;
 public class ProtocolManager
 {
     private static ProtocolManager instance = new ProtocolManager();
-    private Map<Class<? extends Protocol>, Protocol> protocols;
+    private Map protocols;
 
     private ProtocolManager()
     {
-        protocols = new HashMap<Class<? extends Protocol>, Protocol>();
+        protocols = new HashMap();
     }
 
     /**
@@ -48,31 +48,29 @@ public class ProtocolManager
     }
 
     /**
-     * Returns a protocol of the specified class. If a protocol of this class
-     * has already been created, the same instance is returned.
+     * Returns a filter of the specified class. If the filter is declared as
+     * a singleton, the instance will be stored and returned on further calls
+     * for the same filter.
      *
-     * @param cls Class of the protocol to return
+     * @param classname Classname of the filter to return
      *
-     * @return Protocol of the specified class.
+     * @return Filter of the specified class.
      */
-    public synchronized <P extends Protocol> P  getProtocol(Class<P> cls)
+    public synchronized Protocol getProtocol(String classname)
     {
         // is there an entry for this class in the hashtable ?
-        Object obj = protocols.get(cls);
-        if (obj != null)
-        {
-            return (P) obj;
-        }
+        Object obj = protocols.get(classname);
+        if (obj != null) { return (Protocol)obj; }
 
-        P protocol = null;
+        Protocol protocol = null;
 
-        try
-        {
+        try {
             // constructing a new protocol
-            protocol = cls.newInstance();
+            Class protocolClass = Class.forName(classname);
+            protocol = (Protocol)protocolClass.newInstance();
 
             // adding the protocol to the hashtable
-            protocols.put(cls, protocol);
+            protocols.put(classname, protocol);
         }
         catch (Exception e)
         {

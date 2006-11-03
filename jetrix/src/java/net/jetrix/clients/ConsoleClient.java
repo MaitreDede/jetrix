@@ -22,10 +22,8 @@ package net.jetrix.clients;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.logging.Logger;
 
 import net.jetrix.*;
-import net.jetrix.protocols.*;
 import net.jetrix.config.*;
 
 /**
@@ -36,18 +34,16 @@ import net.jetrix.config.*;
  */
 public class ConsoleClient implements Client
 {
-    private BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+    private BufferedReader dis = new BufferedReader(new InputStreamReader(System.in));
     private ServerConfig conf;
     private Protocol protocol;
     private User user;
     private Channel channel;
-    private Logger log = Logger.getLogger("net.jetrix");
-    private boolean closed = false;
 
     public ConsoleClient()
     {
         conf = Server.getInstance().getConfig();
-        protocol = ProtocolManager.getInstance().getProtocol(ConsoleProtocol.class);
+        protocol = ProtocolManager.getInstance().getProtocol("net.jetrix.protocols.ConsoleProtocol");
         user = new User();
         user.setName("Admin");
         user.setAccessLevel(100);
@@ -62,47 +58,34 @@ public class ConsoleClient implements Client
 
     public void run()
     {
-        while (conf.isRunning() && !closed)
+        while (conf.isRunning())
         {
             try
             {
-                Message message = receive();
-
-                if (message != null)
-                {
-                    Server.getInstance().send(message);
-                }
+                Message m = receiveMessage();
+                if (m == null) continue;
+                Server.getInstance().sendMessage(m);
             }
             catch (Exception e)
             {
                 e.printStackTrace();
             }
         }
-
-        if (closed)
-        {
-            log.info("Input stream closed, shutting down the console...");
-        }
     }
 
-    public void send(Message message)
+    public void sendMessage(Message message)
     {
         String msg = protocol.translate(message, user.getLocale());
         if (msg != null) System.out.println(msg);
     }
 
-    public Message receive() throws IOException
+    public Message receiveMessage() throws IOException
     {
-        String line = in.readLine();
-        if (line == null)
-        {
-            closed = true;
-        }
-
-        Message message = protocol.getMessage(line);
-        if (message != null) message.setSource(this);
-
-        return message;
+        String cmd = dis.readLine();
+        Message m = protocol.getMessage(cmd);
+        if (m != null) m.setSource(this);
+        
+        return m;
     }
 
     public InetAddress getInetAddress()
@@ -118,15 +101,6 @@ public class ConsoleClient implements Client
     public Channel getChannel()
     {
         return channel;
-    }
-
-    public boolean supportsMultipleChannels()
-    {
-        return false;
-    }
-
-    public boolean supportsAutoJoin() {
-        return true;
     }
 
     public User getUser()
@@ -149,13 +123,6 @@ public class ConsoleClient implements Client
         return null;
     }
 
-    public long getIdleTime()
-    {
-        return 0;
-    }
-
-    public void disconnect()
-    {
-    }
+    public void disconnect() { }
 
 }

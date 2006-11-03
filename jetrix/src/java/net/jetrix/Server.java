@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,14 +19,16 @@
 
 package net.jetrix;
 
-import java.util.concurrent.*;
+import java.io.*;
+import java.net.*;
+import java.text.*;
+import java.util.*;
 import java.util.logging.*;
 
 import net.jetrix.clients.*;
-import net.jetrix.commands.*;
 import net.jetrix.config.*;
+import net.jetrix.commands.*;
 import net.jetrix.messages.*;
-import net.jetrix.services.VersionService;
 
 /**
  * Main class, starts server components.
@@ -38,30 +40,25 @@ public class Server implements Runnable, Destination
 {
     private static Server instance;
 
-    private ServerConfig config;
-    private BlockingQueue<Message> queue;
+    private ServerConfig conf;
+    private MessageQueue mq;
     private ChannelManager channelManager;
-    private Logger log = Logger.getLogger("net.jetrix");
-    private Client console;
+    private Logger logger;
 
     private Server()
     {
+        System.out.println("Jetrix TetriNET Server " + ServerConfig.VERSION + ", Copyright (C) 2001-2003 Emmanuel Bourg\n");
+
         // spawn the server message queue
-        queue = new LinkedBlockingQueue<Message>();
+        mq = new MessageQueue();
 
         // add the stop hook
-        Runtime.getRuntime().addShutdownHook(new Thread()
-        {
+        Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run()
             {
-                if (config != null)
-                {
-                    instance.stop();
-                }
+                if (conf != null) { instance.stop(); }
             }
         });
-
-        config = new ServerConfig();
     }
 
     /**
@@ -83,56 +80,91 @@ public class Server implements Runnable, Destination
     private void init()
     {
         // read the server configuration
-        config.load();
-        config.setRunning(true);
+        conf = new ServerConfig();
+        conf.load();
+        conf.setRunning(true);
 
         // prepare the loggers
-        LogManager.init();
+        prepareLoggers();
 
-        // display the systray icon (windows only)
-        SystrayManager.open();
+        // @todo check the availability of a new release
+        // ....
 
         // spawning persistent channels
         channelManager = ChannelManager.getInstance();
         channelManager.clear();
 
-        for (ChannelConfig cc : config.getChannels())
+        Iterator it = conf.getChannels();
+        while(it.hasNext())
         {
+            ChannelConfig cc = (ChannelConfig)it.next();
             cc.setPersistent(true);
             channelManager.createChannel(cc);
         }
 
-        // start the client listeners
-        for (Listener listener : config.getListeners())
-        {
-            if (listener.isAutoStart())
-            {
-                listener.start();
-            }
-        }
-
-        // start the services
-        for (Service service : config.getServices())
-        {
-            if (service.isAutoStart())
-            {
-                log.info("Starting service " + service.getName());
-                service.start();
-            }
-        }
-
-        // check the availability of a new release
-        VersionService.updateLatestVersion();
-        if (VersionService.isNewVersionAvailable())
-        {
-            log.warning("A new version is available (" + VersionService.getLatestVersion() + "), download it on http://jetrix.sf.net now!");
-        }
-
         // start the server console
-        console = new ConsoleClient();
-        new Thread(console).start();
+        (new Thread(new ConsoleClient())).start();
 
-        log.info("Server ready!");
+        // start the client listeners
+        Iterator listeners = conf.getListeners();
+        while (listeners.hasNext())
+        {
+            Listener listener = (Listener) listeners.next();
+            listener.start();
+        }
+
+        logger.info("Server ready!");
+    }
+
+    private void prepareLoggers()
+    {
+        logger = Logger.getLogger("net.jetrix");
+        logger.setUseParentHandlers(false);
+        logger.setLevel(Level.ALL);
+
+        ConsoleHandler consoleHandler = new ConsoleHandler();
+        String debug = System.getProperty("jetrix.debug");
+        if ( "true".equals(debug) ) { consoleHandler.setLevel( Level.ALL); }
+        logger.addHandler(consoleHandler);
+        consoleHandler.setFormatter(new Formatter() {
+            Date dat = new Date();
+            private final static String format = "HH:mm:ss";
+            private SimpleDateFormat formatter;
+
+            public synchronized String format(LogRecord record) {
+                dat.setTime(record.getMillis());
+                if (formatter == null) {
+                    formatter = new SimpleDateFormat(format);
+                }
+                return "[" + formatter.format(dat) + "] ["
+                    + record.getLevel().getLocalizedName() + "] "
+                    + formatMessage(record) + "\n";
+            }
+        });
+
+        try {
+            FileHandler fileHandler = new FileHandler(conf.getAccessLogPath(), 1000000, 10);
+            fileHandler.setLevel(Level.CONFIG);
+            logger.addHandler(fileHandler);
+            fileHandler.setFormatter(new Formatter() {
+                Date dat = new Date();
+                private final static String format = "yyyy-MM-dd HH:mm:ss";
+                private SimpleDateFormat formatter;
+
+                public synchronized String format(LogRecord record) {
+                    dat.setTime(record.getMillis());
+                    if (formatter == null) {
+                        formatter = new SimpleDateFormat(format);
+                    }
+                    return "[" + formatter.format(dat) + "] "
+                        + formatMessage(record) + "\n";
+                }
+            });
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -140,61 +172,39 @@ public class Server implements Runnable, Destination
      */
     public void start()
     {
-        Thread server = new Thread(this, "server");
+        Thread server = new Thread(this);
         server.start();
     }
 
     /**
      * Stop the server.
      */
-    public void stop()
+    protected void stop()
     {
-        config.setRunning(false);
-
         // stop the listeners
-        for (Listener listener : config.getListeners())
+        Iterator listeners = conf.getListeners();
+        while (listeners.hasNext())
         {
-            if (listener.isRunning())
-            {
-                listener.stop();
-            }
+            Listener listener = (Listener) listeners.next();
+            listener.stop();
         }
 
-        // stop the services
-        for (Service service : config.getServices())
-        {
-            if (service.isRunning())
-            {
-                service.stop();
-            }
-        }
-
-        // disconnect all clients
+        conf.setRunning(false);
         disconnectAll();
-
-        // close the channels
-        ChannelManager.getInstance().closeAll();
-
-        // stop the server thread
-        queue.add(new ShutdownMessage());
     }
 
     /**
      * Disconnect all clients from the server.
      */
-    private void disconnectAll()
+    protected void disconnectAll()
     {
         ClientRepository repository = ClientRepository.getInstance();
 
-        for (Client client : repository.getClients())
+        Iterator clients = repository.getClients();
+        while (clients.hasNext())
         {
+            Client client = (Client)clients.next();
             client.disconnect();
-        }
-
-        // disconnect the console client as well
-        if (console != null)
-        {
-            console.disconnect();
         }
     }
 
@@ -202,88 +212,109 @@ public class Server implements Runnable, Destination
     {
         init();
 
-        while (config.isRunning())
+        while (conf.isRunning())
         {
             try
             {
                 // fetching next message waiting in the queue
-                Message message = queue.take();
+                Message m = mq.get();
 
-                if (log.isLoggable(Level.FINEST))
-                {
-                    log.finest("[server] processing " + message);
-                }
+                logger.finest("Server: processing " + m);
 
                 // processing message
 
-                if (message instanceof AddPlayerMessage)
+                if ( m instanceof AddPlayerMessage)
                 {
                     // looking for a channel with room left
-                    int level = ((AddPlayerMessage) message).getClient().getUser().getAccessLevel();
-                    Channel channel = channelManager.getHomeChannel(level);
+                    Channel ch = channelManager.getOpenedChannel();
 
-                    if (channel != null)
+                    if (ch != null)
                     {
-                        if (log.isLoggable(Level.FINEST))
-                        {
-                            log.finest("[server] assigning client to channel " + channel);
-                        }
-                        channel.send(message);
+                        logger.finest("[server] assigning client to channel " + ch);
+                        ch.sendMessage(m);
                     }
                     else
                     {
                         // send server full message or create a new channel
-                        if (log.isLoggable(Level.FINEST))
-                        {
-                            log.finest("[server] no available channels!");
-                        }
+                        logger.finest("[server] no available channels!");
                     }
                 }
-                else if (message instanceof CommandMessage)
+                else if ( m instanceof CommandMessage)
                 {
-                    CommandManager.getInstance().execute((CommandMessage) message);
+                    CommandManager.getInstance().execute((CommandMessage)m);
+
                 }
                 else
                 {
-                    log.info("[server] Message not processed " + message);
+                    logger.info("[server] Message not processed " +  m);
                 }
+
+                /*switch(m.getCode())
+                {
+                    case Message.MSG_ADDPLAYER:
+                    case Message.MSG_RESTART:
+                    case Message.MSG_SHUTDOWN:
+                        conf.setRunning(false);
+                        break;
+
+                    case Message.MSG_UNKNOWN:
+                    case Message.MSG_COMMAND:
+                }*/
             }
-            catch (InterruptedException e)
+            catch (IOException e)
             {
-                log.log(Level.WARNING, e.getMessage(), e);
+                e.printStackTrace();
             }
         }
-
-        // remove the system tray icon
-        SystrayManager.close();
     }
 
     /**
      * Add a message to the server message queue.
      */
-    public void send(Message message)
+    public void sendMessage(Message m)
     {
-        queue.add(message);
+        mq.put(m);
     }
 
-    /**
-     * Return the server configuration.
-     */
     public ServerConfig getConfig()
     {
-        return config;
+        return conf;
     }
 
     /**
-     * Server entry point.
+     * Server entry point. All classes, jar and zip files in the lib
+     * subdirectory are automatically added to the classpath.
      *
      * @param args start parameters
      */
-    public static void main(String[] args)
+    public static void main(String[] args) throws Exception
     {
-        System.out.println("Jetrix TetriNET Server " + ServerConfig.VERSION + ", Copyright (C) 2001-2005 Emmanuel Bourg\n");
-        Server server = Server.getInstance();
-        server.start();
+        // build the list of JARs in the ./lib directory
+        File repository = new File("lib/");
+        List jars = new ArrayList();
+        jars.add(repository.toURL());
+        jars.add(new File("lang/").toURL());
+
+        File[] files = repository.listFiles();
+        for (int i = 0; i < files.length; i++)
+        {
+            String filename = files[i].getAbsolutePath();
+            if (filename.endsWith(".jar") || filename.endsWith(".zip"))
+            {
+                jars.add(files[i].toURL());
+            }
+        }
+
+        URL[] urls = new URL[jars.size()];
+        for (int i = 0; i < jars.size(); i++) urls[i] = (URL) jars.get(i);
+
+        URLClassLoader loader = new URLClassLoader(urls, null);
+        Thread.currentThread().setContextClassLoader(loader);
+
+        // start the server
+        Class serverClass = loader.loadClass("net.jetrix.Server");
+        Object server = serverClass.getMethod("getInstance", null).invoke(null, null);
+        server.getClass().getMethod("start", null).invoke(server, null);
     }
 
 }

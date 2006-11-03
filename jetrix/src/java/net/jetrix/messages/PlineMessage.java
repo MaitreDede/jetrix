@@ -19,6 +19,8 @@
 
 package net.jetrix.messages;
 
+import net.jetrix.*;
+
 /**
  * A party line message.
  *
@@ -38,13 +40,5 @@ public class PlineMessage extends TextMessage
     {
         setSlot(slot);
         setText(text);
-    }
-
-    /**
-     * @since 0.3
-     */
-    public PlineMessage(String key, Object... params)
-    {
-        setKey(key, params);
     }
 }

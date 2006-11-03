@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +20,6 @@
 package net.jetrix.commands;
 
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.messages.*;
 
@@ -30,16 +29,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class IpCommand extends AbstractCommand implements ParameterCommand
+public class IpCommand implements Command
 {
-    public IpCommand()
-    {
-        setAccessLevel(AccessLevel.OPERATOR);
-    }
+    private int accessLevel = 1;
 
     public String[] getAliases()
     {
-        return (new String[]{"ip"});
+        return (new String[] { "ip" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -47,32 +48,63 @@ public class IpCommand extends AbstractCommand implements ParameterCommand
         return "/ip <" + Language.getText("command.params.player_name_num", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 1;
+        return Language.getText("command.ip.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
-        String targetName = m.getParameter(0);
-        Client target = m.getClientParameter(0);
-
-        if (target == null)
+        if (m.getParameterCount() >= 1)
         {
-            // no player found
-            client.send(new PlineMessage("command.player_not_found", targetName));
+            String targetName = m.getParameter(0);
+            Client target = null;
+
+            // checking if the second parameter is a slot number
+            try
+            {
+                int slot = Integer.parseInt(targetName);
+                if (slot >= 1 && slot <= 6)
+                {
+                    Channel channel = client.getChannel();
+                    target = channel.getClient(slot);
+                }
+            }
+            catch (NumberFormatException e) {}
+
+            if (target == null)
+            {
+                // target is still null, the second parameter is a playername
+                ClientRepository repository = ClientRepository.getInstance();
+                target = repository.getClient(targetName);
+            }
+
+            if (target == null)
+            {
+                // no player found
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.player_not_found", new Object[] { targetName });
+                client.sendMessage(response);
+            }
+            else
+            {
+                // player found
+                String hostname = target.getInetAddress().getHostName();
+                String hostaddress = target.getInetAddress().getHostAddress();
+                String message = "<darkBlue>[<red>" + target.getUser().getName() + "</red>] " + hostname;
+                if (!hostname.equals(hostaddress)) message += " (" + hostaddress + ")";
+                PlineMessage reponse = new PlineMessage(message);
+                client.sendMessage(reponse);
+            }
         }
         else
         {
-            // player found
-            String hostname = target.getInetAddress().getHostName();
-            String hostaddress = target.getInetAddress().getHostAddress();
-            String message = "<darkBlue>[<red>" + target.getUser().getName() + "</red>] " + hostname;
-            if (!hostname.equals(hostaddress)) message += " (" + hostaddress + ")";
-            PlineMessage reponse = new PlineMessage(message);
-            client.send(reponse);
+            // not enough parameters
+            String message = "<red>" + m.getCommand() + "<blue> <" + Language.getText("command.params.player_name_num", client.getUser().getLocale()) + ">";
+            PlineMessage response = new PlineMessage(message);
+            client.sendMessage(response);
         }
     }
 

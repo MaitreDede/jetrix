@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +20,7 @@
 package net.jetrix.commands;
 
 import java.util.*;
-
+import net.jetrix.*;
 import net.jetrix.messages.*;
 
 /**
@@ -37,56 +37,27 @@ public interface Command
      * a command ("/" or "!"). The first alias in the array is the 
      * default name that will be displayed in the /help list.
      */
-    String[] getAliases();
+    public String[] getAliases();
 
     /**
      * Return the usage of this command, for example
      * <tt>/cmd &lt;param1&gt; &lt;param2&gt;</tt>
-     *
-     * @param locale the locale to be used for the usage
      */
-    String getUsage(Locale locale);
+    public String getUsage(Locale locale);
 
     /**
      * Return a description of this command.
-     *
-     * @param locale the locale to be used for the description
      */
-    String getDescription(Locale locale);
+    public String getDescription(Locale locale);
 
     /**
      * Return the required access level to execute this command.
      */
-    int getAccessLevel();
-
-    /**
-     * Set the access level required to execute this command.
-     *
-     * @since 0.2
-     *
-     * @param level the access level
-     */
-    void setAccessLevel(int level);
-
-    /**
-     * Tells if the command is hidden from the /help list.
-     *
-     * @since 0.2
-     */
-    boolean isHidden();
-
-    /**
-     * Change the hidden status of the command on the /help list.
-     *
-     * @since 0.2
-     *
-     * @param hidden
-     */
-    void setHidden(boolean hidden);
+    public int getAccessLevel();
 
     /**
      * Execute the command.
      */
-    void execute(CommandMessage message);
+    public void execute(CommandMessage message);
 
 }

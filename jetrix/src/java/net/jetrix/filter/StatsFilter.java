@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2005  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,14 +19,12 @@
 
 package net.jetrix.filter;
 
-import static net.jetrix.GameState.*;
-
 import java.util.*;
 import java.text.*;
 
 import net.jetrix.*;
+import net.jetrix.config.*;
 import net.jetrix.messages.*;
-import org.apache.commons.lang.time.StopWatch;
 
 /**
  * A filter computing and displaying the number of pieces dropped per minute
@@ -37,231 +35,215 @@ import org.apache.commons.lang.time.StopWatch;
  */
 public class StatsFilter extends GenericFilter
 {
-    private List<PlayerStats> stats;
-    private StopWatch stopWatch;
+    private List stats;
+    private long totalTime;
+    private long lastStart;
+    private long startTime;
 
     private static DecimalFormat df = new DecimalFormat("0.00");
 
-    public void init()
+    public void init(FilterConfig conf)
     {
-        stopWatch = new StopWatch();
-        stats = new ArrayList<PlayerStats>(6);
+        stats = new ArrayList(6);
         for (int i = 0; i < 6; i++)
         {
             stats.add(null);
         }
     }
 
-    public void onMessage(StartGameMessage m, List<Message> out)
+    public void onMessage(StartGameMessage m, List out)
     {
-        if (getChannel().getGameState() == STOPPED)
-        {
-            // reset and start the stop watch
-            stopWatch.reset();
-            stopWatch.start();
+        // reset the played time for this game
+        totalTime = 0;
 
-            // initialize the stats
-            for (int i = 0; i < 6; i++)
+        // register the date of the last start/resume
+        lastStart = System.currentTimeMillis();
+        startTime = lastStart;
+
+        // initialize the stats
+        for (int i = 0; i < 6; i++)
+        {
+            if (getChannel().getClient(i + 1) != null)
             {
-                if (getChannel().getClient(i + 1) != null)
-                {
-                    stats.set(i, new PlayerStats());
-                }
-                else
-                {
-                    stats.set(i, null);
-                }
+                stats.set(i, new PlayerStats());
+            }
+            else
+            {
+                stats.set(i, null);
             }
         }
 
         out.add(m);
     }
 
-    public void onMessage(EndGameMessage m, List<Message> out)
+    public void onMessage(EndGameMessage m, List out)
     {
         // forward the message
         out.add(m);
-
-        if (getChannel().getGameState() != STOPPED)
-        {
-            stopWatch.stop();
-            displayStats(out);
-        }
+        displayStats(out);
     }
 
-    public void onMessage(PauseMessage m, List<Message> out)
+    public void onMessage(StopGameMessage m, List out)
     {
-        if (getChannel().getGameState() == STARTED)
-        {
-            // suspend the stop watch
-            stopWatch.suspend();
-        }
-
         out.add(m);
+        displayStats(out);
     }
 
-    public void onMessage(ResumeMessage m, List<Message> out)
+    public void onMessage(PauseMessage m, List out)
     {
-        if (getChannel().getGameState() == PAUSED)
+        // updating global play time
+        long now = System.currentTimeMillis();
+        totalTime += (now - lastStart);
+
+        // @todo update individual play time
+        for (int i = 0; i < 6; i++)
         {
-            // resume the stop watch
-            stopWatch.resume();
+            PlayerStats playerStats = (PlayerStats) stats.get(i);
+            if (playerStats != null && playerStats.playing)
+            {
+                playerStats.timePlayed += (now - lastStart);
+            }
         }
 
         out.add(m);
     }
 
-    public void onMessage(FieldMessage m, List<Message> out)
+    public void onMessage(ResumeMessage m, List out)
     {
-        // increase the block count for the updated slot
-        PlayerStats playerStats = stats.get(m.getSlot() - 1);
-        if (playerStats != null && (stopWatch.getTime() > 1500))
+        lastStart = new Date().getTime();
+        out.add(m);
+    }
+
+    public void onMessage(FieldMessage m, List out)
+    {
+        // ignore the empty field message sent on using specials
+        if (m.getField() != null)
         {
-            playerStats.blockCount++;
+            // increasing block count for the updated slot
+            PlayerStats playerStats = (PlayerStats) stats.get(m.getSlot() - 1);
+            if (playerStats != null && (System.currentTimeMillis() - startTime > 1500))
+            {
+                playerStats.blockCount++;
+            }
         }
 
         out.add(m);
     }
 
-    public void onMessage(OneLineAddedMessage m, List<Message> out)
+    public void onMessage(OneLineAddedMessage m, List out)
     {
         out.add(m);
-
-        updateStats(m, 1);
-
-        // remove 1 block count from any player in an opposite team
-        removeBlock(m);
+        PlayerStats playerStats = (PlayerStats) stats.get(m.getFromSlot() - 1);
+        if (playerStats != null)
+        {
+            playerStats.linesAdded++;
+            // remove 1 block count from any player in an opposite team
+            removeBloc(m);
+        }
     }
 
-    public void onMessage(TwoLinesAddedMessage m, List<Message> out)
+    public void onMessage(TwoLinesAddedMessage m, List out)
     {
         out.add(m);
-
-        updateStats(m, 2);
-
-        // remove 1 block count from any player in an opposite team
-        removeBlock(m);
+        PlayerStats playerStats = (PlayerStats) stats.get(m.getFromSlot() - 1);
+        if (playerStats != null)
+        {
+            playerStats.linesAdded += 2;
+            // remove 1 block count from any player in an opposite team
+            removeBloc(m);
+        }
     }
 
-    public void onMessage(FourLinesAddedMessage m, List<Message> out)
+    public void onMessage(FourLinesAddedMessage m, List out)
     {
         out.add(m);
-
-        updateStats(m, 4);
-
-        // remove 1 block count from any player in an opposite team
-        removeBlock(m);
+        PlayerStats playerStats = (PlayerStats) stats.get(m.getFromSlot() - 1);
+        if (playerStats != null)
+        {
+            playerStats.linesAdded += 4;
+            playerStats.tetrisCount++;
+            // remove 1 block count from any player in an opposite team
+            removeBloc(m);
+        }
     }
 
-    public void onSpecial(SpecialMessage m, List<Message> out)
+    public void onSpecial(SpecialMessage m)
     {
         if (!(m instanceof OneLineAddedMessage)
-                && !(m instanceof TwoLinesAddedMessage)
-                && !(m instanceof FourLinesAddedMessage))
+            && !(m instanceof TwoLinesAddedMessage)
+            && !(m instanceof FourLinesAddedMessage))
         {
-            // add a special received by the target
-            PlayerStats playerStats = stats.get(m.getSlot() - 1);
+            PlayerStats playerStats = (PlayerStats) stats.get(m.getSlot() - 1);
             playerStats.specialsReceived++;
 
-            // remove 2 blocks count from the target
-            playerStats.blockCount = playerStats.blockCount - 2;
-
-            // add a special sent by the sender
-            playerStats = stats.get(m.getFromSlot() - 1);
+            playerStats = (PlayerStats) stats.get(m.getFromSlot() - 1);
             playerStats.specialsSent++;
         }
     }
 
-    public void onMessage(LevelMessage m, List<Message> out)
+    public void onMessage(LevelMessage m, List out)
     {
         out.add(m);
-        PlayerStats playerStats = stats.get(m.getSlot() - 1);
-        if (playerStats != null)
-        {
-            playerStats.level = m.getLevel();
-        }
+        PlayerStats playerStats = (PlayerStats) stats.get(m.getSlot() - 1);
+        if (playerStats != null) { playerStats.level = m.getLevel(); }
     }
 
-    public void onMessage(LeaveMessage m, List<Message> out)
+    public void onMessage(LeaveMessage m, List out)
     {
         out.add(m);
         // remove the stats from the list if a player leave the channel
         stats.set(m.getSlot() - 1, null);
     }
 
-    public void onMessage(PlayerLostMessage m, List<Message> out)
+    public void onMessage(PlayerLostMessage m, List out)
     {
+        long now = System.currentTimeMillis();
         out.add(m);
-        PlayerStats playerStats = stats.get(m.getSlot() - 1);
+        PlayerStats playerStats = (PlayerStats) stats.get(m.getSlot() - 1);
         if (playerStats != null)
         {
             playerStats.playing = false;
-            playerStats.timePlayed = stopWatch.getTime();
+            playerStats.timePlayed += (now - lastStart);
         }
     }
 
     /**
-     * Decrease the block count of players receiving an add to all message since
-     * they will send back a field message assimilated by mistake as a block fall.
+     * Decrease the bloc count of players receiving an add to all message since
+     * they will send back a field message assimilated by mistake as a bloc fall.
      */
-    private void removeBlock(SpecialMessage message)
+    private void removeBloc(SpecialMessage m)
     {
-        int slot = message.getFromSlot();
+        int slot = m.getFromSlot();
 
-        // find the team of the player sending the message;
-        String team = null;
-
-        if (message.getSource() != null && message.getSource() instanceof Client)
+        if (slot > 0)
         {
-            Client client = (Client) message.getSource();
-            team = client.getUser().getTeam();
-        }
+            Client fromClient = (Client) m.getSource();
 
-        // check all players...
-        for (int i = 1; i <= 6; i++)
-        {
-            Client client = getChannel().getClient(i);
-            if (i != slot && client != null)
+            for (int i = 1; i <= 6; i++)
             {
-                User user = client.getUser();
-
-                // ...still playing, and team-less or in a different team from the sender
-                if (user.isPlaying() && (user.getTeam() == null || !user.getTeam().equals(team)))
+                Client client = getChannel().getClient(i);
+                if (i != slot && client != null)
                 {
-                    PlayerStats playerStats = stats.get(i - 1);
-                    playerStats.blockCount--;
+                    User user = client.getUser();
+
+                    if (user.isPlaying() && (user.getTeam() == null || !user.getTeam().equals(fromClient.getUser().getTeam())))
+                    {
+                        PlayerStats playerStats = (PlayerStats) stats.get(i - 1);
+                        playerStats.blockCount--;
+                    }
                 }
             }
         }
     }
 
-    /**
-     * Update the stats of the player sending the specified message.
-     *
-     * @param message
-     * @param lines
-     */
-    private void updateStats(SpecialMessage message, int lines)
+    private void displayStats(List out)
     {
-        if (message.getFromSlot() > 0) // ignore messages sent by the server
-        {
-            PlayerStats playerStats = stats.get(message.getFromSlot() - 1);
-            if (playerStats != null)
-            {
-                playerStats.linesAdded += lines;
-                if (lines == 4)
-                {
-                    playerStats.tetrisCount++;
-                }
-            }
-        }
-    }
+        long now = System.currentTimeMillis();
+        totalTime += (now - lastStart);
 
-    private void displayStats(List<Message> out)
-    {
         for (int slot = 1; slot <= 6; slot++)
         {
-            PlayerStats playerStats = stats.get(slot - 1);
+            PlayerStats playerStats = (PlayerStats) stats.get(slot - 1);
             User user = getChannel().getPlayer(slot);
 
             if (playerStats != null && user != null)
@@ -269,52 +251,39 @@ public class StatsFilter extends GenericFilter
                 // update the play time of the remaining players
                 if (playerStats.playing)
                 {
-                    playerStats.timePlayed = stopWatch.getTime();
+                    playerStats.timePlayed += (now - lastStart);
                 }
 
                 // display the stats
-                String bpm = df.format(playerStats.getBlocksPerMinute());
+                String ppm = df.format(playerStats.getBlocksPerMinute());
 
-                StringBuilder text = new StringBuilder();
-                text.append("<purple>" + user.getName() + "</purple> : ");
-                text.append(playerStats.blockCount + " <aqua>blocks @<red>" + bpm + "</red> bpm, ");
-                text.append("<black>" + playerStats.linesAdded + "</black> added, ");
-                text.append("<black>" + playerStats.tetrisCount + "</black> tetris");
-                if (getChannel().getConfig().getSettings().getSpecialAdded() > 0)
-                {
-                    // stats on special blocks for non pure game only
-                    text.append(", <black>" + playerStats.specialsSent + " / " + playerStats.specialsReceived + "</black> specials");
-                }
+                PlineMessage result = new PlineMessage();
+                result.setText("<purple>" + user.getName() + "</purple> : "
+                        + playerStats.blockCount + " <aqua>blocks @<red>" +  ppm + "</red> bpm, "
+                        + "<black>" + playerStats.linesAdded + "</black> added, "
+                        + "<black>" + playerStats.tetrisCount +"</black> tetris, "
+                        + "<black>" + playerStats.specialsSent + " / " + playerStats.specialsReceived + "</black> specials");
 
-                out.add(new PlineMessage(text.toString()));
+                out.add(result);
             }
         }
 
         // display the total game time
         PlineMessage time = new PlineMessage();
-        time.setText("<brown>Total game time: <black>" + df.format(stopWatch.getTime() / 1000f) + "</black> seconds"); // todo i18n
+        time.setText("<brown>Total game time: <black>" + (totalTime / 1000) + "</black> seconds");
         out.add(time);
     }
 
-    public String getName()
-    {
-        return "Stats Filter";
-    }
+    public String getName() { return "Stats Filter"; }
 
     public String getDescription()
     {
         return "Displays stats about the game (pieces dropped per minute, lines added to all, time played, etc";
     }
 
-    public String getVersion()
-    {
-        return "1.1";
-    }
+    public String getVersion() { return "1.0"; }
 
-    public String getAuthor()
-    {
-        return "Emmanuel Bourg";
-    }
+    public String getAuthor() { return "Emmanuel Bourg"; }
 
     private class PlayerStats
     {
@@ -329,7 +298,7 @@ public class StatsFilter extends GenericFilter
 
         public double getBlocksPerMinute()
         {
-            return (double) blockCount * 60000 / (double) timePlayed;
+            return (double)blockCount * 60000 / (double)timePlayed;
         }
     }
 

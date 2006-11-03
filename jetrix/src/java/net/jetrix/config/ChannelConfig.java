@@ -33,30 +33,22 @@ public class ChannelConfig
     private String name = "noname";
     private String password;
     private String description;
-    private String topic;
-    private int maxPlayers = PLAYER_CAPACITY;
-    private int maxSpectators = SPECTATOR_CAPACITY;
+    private int maxPlayers = 6;
+    private int maxSpectators = 50;
     private int accessLevel;
     private boolean persistent;
     private String winlistId;
-    private boolean idleAllowed;
-    private boolean visible = true;
 
     /** extended properties */
     private Properties props;
 
     /** channel filter definitions */
-    private List<FilterConfig> filters;
-
-    /** Default spectator capacity */
-    public static final int SPECTATOR_CAPACITY = 50;
-
-    /** Default player capacity */
-    public static final int PLAYER_CAPACITY = 6;
+    private List filters;
 
     public ChannelConfig()
     {
-        filters = new ArrayList<FilterConfig>();
+        props = new Properties();
+        filters = new ArrayList();
         settings = new Settings();
     }
 
@@ -106,6 +98,8 @@ public class ChannelConfig
 
     /**
      * Sets the password to enter the channel.
+     *
+     * @param password
      */
     public void setPassword(String password)
     {
@@ -122,24 +116,12 @@ public class ChannelConfig
 
     /**
      * Sets the description shown on entering the channel.
+     *
+     * @param description
      */
     public void setDescription(String description)
     {
         this.description = description;
-    }
-
-    /**
-     * Return the topic.
-     */
-    public String getTopic() {
-        return topic;
-    }
-
-    /**
-     * Set the topic.
-     */
-    public void setTopic(String topic) {
-        this.topic = topic;
     }
 
     /**
@@ -228,15 +210,11 @@ public class ChannelConfig
 
     public String getProperty(String name)
     {
-        return (props == null) ? null : props.getProperty(name);
+        return props.getProperty(name);
     }
 
     public void setProperty(String name, String value)
     {
-        if (props == null)
-        {
-            props = new Properties();
-        }
         props.setProperty(name, value);
     }
 
@@ -251,7 +229,7 @@ public class ChannelConfig
     /**
      * Returns an iterator of registered filters.
      */
-    public Iterator<FilterConfig> getFilters()
+    public Iterator getFilters()
     {
         return filters.iterator();
     }
@@ -264,23 +242,4 @@ public class ChannelConfig
         filters.add(fconf);
     }
 
-    public boolean isIdleAllowed()
-    {
-        return idleAllowed;
-    }
-
-    public void setIdleAllowed(boolean idleAllowed)
-    {
-        this.idleAllowed = idleAllowed;
-    }
-
-    public boolean isVisible()
-    {
-        return visible;
-    }
-
-    public void setVisible(boolean visible)
-    {
-        this.visible = visible;
-    }
 }

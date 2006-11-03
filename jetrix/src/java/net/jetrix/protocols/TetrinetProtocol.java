@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2005  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,12 +20,10 @@
 package net.jetrix.protocols;
 
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.winlist.*;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * Protocol to communicate with TetriNET 1.13 compatible clients.
@@ -33,9 +31,9 @@ import org.apache.commons.lang.StringUtils;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class TetrinetProtocol extends AbstractProtocol
+public class TetrinetProtocol implements Protocol
 {
-    private static Map<String, String> styles = new HashMap<String, String>();
+    private static Map styles = new HashMap();
 
     static
     {
@@ -59,27 +57,6 @@ public class TetrinetProtocol extends AbstractProtocol
         styles.put("u", "\u001f");
         styles.put("white", "\u0018");
     }
-
-    private static Map<String, Class> specials = new TreeMap<String, Class>();
-
-    static
-    {
-        specials.put("cs1", OneLineAddedMessage .class);
-        specials.put("cs2", TwoLinesAddedMessage.class);
-        specials.put("cs4", FourLinesAddedMessage.class);
-        specials.put("a", AddLineMessage.class);
-        specials.put("c", ClearLineMessage.class);
-        specials.put("n", NukeFieldMessage.class);
-        specials.put("r", RandomClearMessage.class);
-        specials.put("s", SwitchFieldsMessage.class);
-        specials.put("b", ClearSpecialsMessage.class);
-        specials.put("g", GravityMessage.class);
-        specials.put("q", BlockQuakeMessage.class);
-        specials.put("o", BlockBombMessage.class);
-    }
-
-    /** Initialization token */
-    public static final String INIT_TOKEN = "tetrisstart";
 
     /**
      * Return the name of this protocol
@@ -105,52 +82,12 @@ public class TetrinetProtocol extends AbstractProtocol
         String cmd = st.nextToken();
         Message m = null;
 
-        // f <slot> <field>
-        if ("f".equals(cmd))
-        {
-            FieldMessage field = new FieldMessage();
-            field.setSlot(Integer.parseInt(st.nextToken()));
-            field.setField((st.hasMoreTokens()) ? st.nextToken() : null);
-            m = field;
-            m.setRawMessage(this, line);
-        }
-        // sb <to> <bonus> <from>
-        else if ("sb".equals(cmd))
-        {
-            int to = Integer.parseInt(st.nextToken());
-            String special = st.nextToken();
-            int from = Integer.parseInt(st.nextToken());
-
-            Class cls = specials.get(special);
-
-            SpecialMessage spmsg = null;
-            if (specials.keySet().contains(special))
-            {
-                try
-                {
-                    spmsg = (SpecialMessage) cls.newInstance();
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                }
-            }
-            else
-            {
-                throw new IllegalArgumentException("Forged special detected from " + this);
-            }
-
-            spmsg.setSlot(to);
-            spmsg.setFromSlot(from);
-            m = spmsg;
-            m.setRawMessage(this, line);
-        }
         // team <slot> teamname
-        else if ("team".equals(cmd))
+        if ("team".equals(cmd))
         {
             TeamMessage team = new TeamMessage();
             team.setSlot(Integer.parseInt(st.nextToken()));
-            team.setName(st.hasMoreTokens() ? st.nextToken() : null);
+            team.setName(st.hasMoreTokens()?st.nextToken():null);
             m = team;
             m.setRawMessage(this, line);
         }
@@ -167,13 +104,9 @@ public class TetrinetProtocol extends AbstractProtocol
                     if (firstWord.startsWith("/") && !firstWord.startsWith("//"))
                     {
                         CommandMessage command = new CommandMessage();
-                        command.setSlot(Integer.parseInt(slot));
                         command.setCommand(firstWord.substring(1));
                         command.setText(line.substring(line.indexOf(" ", 9) + 1));
-                        while (st.hasMoreTokens())
-                        {
-                            command.addParameter(st.nextToken());
-                        }
+                        while (st.hasMoreTokens()) { command.addParameter(st.nextToken()); }
                         m = command;
                     }
                     else
@@ -200,7 +133,7 @@ public class TetrinetProtocol extends AbstractProtocol
         {
             PlineActMessage plineAct = new PlineActMessage();
             plineAct.setSlot(Integer.parseInt(st.nextToken()));
-            plineAct.setText(line.substring("plineact".length() + 3));
+            plineAct.setText(line.substring(line.indexOf(" ")));
             m = plineAct;
             m.setRawMessage(this, line);
         }
@@ -234,26 +167,6 @@ public class TetrinetProtocol extends AbstractProtocol
             }
             m = msg;
         }
-        // newgame
-        else if ("newgame".equals(cmd))
-        {
-            NewGameMessage newgame = new NewGameMessage();
-            m = newgame;
-
-            // todo parse the game settings
-        }
-        // endgame
-        else if ("endgame".equals(cmd))
-        {
-            EndGameMessage end = new EndGameMessage();
-            m = end;
-        }
-        // ingame
-        else if ("ingame".equals(cmd))
-        {
-            IngameMessage ingame = new IngameMessage();
-            m = ingame;
-        }
         // playerlost <slot>
         else if ("playerlost".equals(cmd))
         {
@@ -271,43 +184,80 @@ public class TetrinetProtocol extends AbstractProtocol
             m = level;
             m.setRawMessage(this, line);
         }
-        // clientinfo <name> <version>
-        else if ("clientinfo".equals(cmd))
+        // sb <to> <bonus> <from>
+        else if ("sb".equals(cmd))
         {
-            ClientInfoMessage info = new ClientInfoMessage();
-            if (st.hasMoreTokens())
+            int to   = Integer.parseInt(st.nextToken());
+            String special = st.nextToken();
+            int from = Integer.parseInt(st.nextToken());
+
+            SpecialMessage spmsg = null;
+            if("cs1".equals(special))
             {
-                info.setName(st.nextToken());
+                spmsg = new OneLineAddedMessage();
             }
-            if (st.hasMoreTokens())
+            else if("cs2".equals(special))
             {
-                info.setVersion(st.nextToken());
+                spmsg = new TwoLinesAddedMessage();
             }
-            m = info;
+            else if("cs4".equals(special))
+            {
+                spmsg = new FourLinesAddedMessage();
+            }
+            else if("a".equals(special))
+            {
+                spmsg = new AddLineMessage();
+            }
+            else if("c".equals(special))
+            {
+                spmsg = new ClearLineMessage();
+            }
+            else if("n".equals(special))
+            {
+                spmsg = new NukeFieldMessage();
+            }
+            else if("r".equals(special))
+            {
+                spmsg = new RandomClearMessage();
+            }
+            else if("s".equals(special))
+            {
+                spmsg = new SwitchFieldsMessage();
+            }
+            else if("b".equals(special))
+            {
+                spmsg = new ClearSpecialsMessage();
+            }
+            else if("g".equals(special))
+            {
+                spmsg = new GravityMessage();
+            }
+            else if("q".equals(special))
+            {
+                spmsg = new BlockQuakeMessage();
+            }
+            else if("o".equals(special))
+            {
+                spmsg = new BlockBombMessage();
+            }
+            else
+            {
+                throw new IllegalArgumentException("Forged special detected from " + this);
+            }
+
+            spmsg.setSlot(to);
+            spmsg.setFromSlot(from);
+            m = spmsg;
+            m.setRawMessage(this, line);
         }
-        // playernum <num>
-        else if ("playernum".equals(cmd))
+        // f <slot> <field>
+        else if ("f".equals(cmd))
         {
-            PlayerNumMessage num = new PlayerNumMessage();
-            num.setSlot(Integer.parseInt(st.nextToken()));
-            m = num;
-        }
-        // playerjoin <num> <name>
-        else if ("playerjoin".equals(cmd))
-        {
-            JoinMessage join = new JoinMessage();
-            join.setSlot(Integer.parseInt(st.nextToken()));
-            join.setName(st.nextToken());
-            join.setRawMessage(this, line);
-            m = join;
-        }
-        // playerleave <num>
-        else if ("playerleave".equals(cmd))
-        {
-            LeaveMessage leave = new LeaveMessage();
-            leave.setSlot(Integer.parseInt(st.nextToken()));
-            leave.setRawMessage(this, line);
-            m = leave;
+            FieldMessage field = new FieldMessage();
+            field.setSlot(Integer.parseInt(st.nextToken()));
+            field.setField((st.hasMoreTokens())?st.nextToken():null);
+            m = field;
+            m.setRawMessage(this, line);
         }
 
         return m;
@@ -320,31 +270,28 @@ public class TetrinetProtocol extends AbstractProtocol
      */
     public String translate(Message m, Locale locale)
     {
-        if (m instanceof SpecialMessage)            { return translate((SpecialMessage) m); }
-        else if (m instanceof FieldMessage)         { return translate((FieldMessage) m); }
-        else if (m instanceof PlineMessage)         { return translate((PlineMessage) m, locale); }
-        else if (m instanceof LevelMessage)         { return translate((LevelMessage) m); }
-        else if (m instanceof PlayerLostMessage)    { return translate((PlayerLostMessage) m); }
-        else if (m instanceof PlineActMessage)      { return translate((PlineActMessage) m, locale); }
-        else if (m instanceof TeamMessage)          { return translate((TeamMessage) m); }
-        else if (m instanceof JoinMessage)          { return translate((JoinMessage) m, locale); }
-        else if (m instanceof LeaveMessage)         { return translate((LeaveMessage) m, locale); }
-        else if (m instanceof PlayerNumMessage)     { return translate((PlayerNumMessage) m); }
-        else if (m instanceof StartGameMessage)     { return translate((StartGameMessage) m); }
-        else if (m instanceof StopGameMessage)      { return translate((StopGameMessage) m); }
-        else if (m instanceof NewGameMessage)       { return translate((NewGameMessage) m); }
-        else if (m instanceof EndGameMessage)       { return translate((EndGameMessage) m); }
-        else if (m instanceof PauseMessage)         { return translate((PauseMessage) m); }
-        else if (m instanceof ResumeMessage)        { return translate((ResumeMessage) m); }
-        else if (m instanceof IngameMessage)        { return translate((IngameMessage) m); }
-        else if (m instanceof GmsgMessage)          { return translate((GmsgMessage) m, locale); }
-        else if (m instanceof PlayerWonMessage)     { return translate((PlayerWonMessage) m); }
-        else if (m instanceof NoConnectingMessage)  { return translate((NoConnectingMessage) m); }
-        else if (m instanceof SpectatorListMessage) { return translate((SpectatorListMessage) m, locale); }
-        else if (m instanceof SmsgMessage)          { return translate((SmsgMessage) m, locale); }
-        else if (m instanceof WinlistMessage)       { return translate((WinlistMessage) m, locale); }
-        else if (m instanceof NoopMessage)          { return translate((NoopMessage) m); }
-        else if (m instanceof CommandMessage)       { return translate((CommandMessage) m); }
+        if ( m instanceof SpecialMessage) return translate((SpecialMessage)m);
+        else if ( m instanceof FieldMessage) return translate((FieldMessage)m);
+        else if ( m instanceof PlineMessage) return translate((PlineMessage)m, locale);
+        else if ( m instanceof LevelMessage) return translate((LevelMessage)m);
+        else if ( m instanceof PlayerLostMessage) return translate((PlayerLostMessage)m);
+        else if ( m instanceof PlineActMessage) return translate((PlineActMessage)m, locale);
+        else if ( m instanceof TeamMessage) return translate((TeamMessage)m);
+        else if ( m instanceof JoinMessage) return translate((JoinMessage)m, locale);
+        else if ( m instanceof LeaveMessage) return translate((LeaveMessage)m, locale);
+        else if ( m instanceof PlayerNumMessage) return translate((PlayerNumMessage)m);
+        else if ( m instanceof StartGameMessage) return translate((StartGameMessage)m);
+        else if ( m instanceof StopGameMessage) return translate((StopGameMessage)m);
+        else if ( m instanceof NewGameMessage) return translate((NewGameMessage)m);
+        else if ( m instanceof EndGameMessage) return translate((EndGameMessage)m);
+        else if ( m instanceof PauseMessage) return translate((PauseMessage)m);
+        else if ( m instanceof ResumeMessage) return translate((ResumeMessage)m);
+        else if ( m instanceof IngameMessage) return translate((IngameMessage)m);
+        else if ( m instanceof GmsgMessage) return translate((GmsgMessage)m, locale);
+        else if ( m instanceof PlayerWonMessage) return translate((PlayerWonMessage)m);
+        else if ( m instanceof NoConnectingMessage) return translate((NoConnectingMessage)m);
+        else if ( m instanceof SpectatorListMessage) return translate((SpectatorListMessage)m, locale);
+        else if ( m instanceof WinlistMessage) return translate((WinlistMessage)m, locale);
         else
         {
             return null;
@@ -353,27 +300,27 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(SpecialMessage m)
     {
-        if (m instanceof OneLineAddedMessage)        { return translate((OneLineAddedMessage) m); }
-        else if (m instanceof TwoLinesAddedMessage)  { return translate((TwoLinesAddedMessage) m); }
-        else if (m instanceof FourLinesAddedMessage) { return translate((FourLinesAddedMessage) m); }
-        else if (m instanceof AddLineMessage)        { return translate((AddLineMessage) m); }
-        else if (m instanceof ClearLineMessage)      { return translate((ClearLineMessage) m); }
-        else if (m instanceof ClearSpecialsMessage)  { return translate((ClearSpecialsMessage) m); }
-        else if (m instanceof RandomClearMessage)    { return translate((RandomClearMessage) m); }
-        else if (m instanceof BlockQuakeMessage)     { return translate((BlockQuakeMessage) m); }
-        else if (m instanceof BlockBombMessage)      { return translate((BlockBombMessage) m); }
-        else if (m instanceof GravityMessage)        { return translate((GravityMessage) m); }
-        else if (m instanceof NukeFieldMessage)      { return translate((NukeFieldMessage) m); }
-        else if (m instanceof SwitchFieldsMessage)   { return translate((SwitchFieldsMessage) m); }
+        if (m instanceof OneLineAddedMessage)        return translate((OneLineAddedMessage)m);
+        else if (m instanceof TwoLinesAddedMessage)  return translate((TwoLinesAddedMessage)m);
+        else if (m instanceof FourLinesAddedMessage) return translate((FourLinesAddedMessage)m);
+        else if (m instanceof AddLineMessage)        return translate((AddLineMessage)m);
+        else if (m instanceof ClearLineMessage)      return translate((ClearLineMessage)m);
+        else if (m instanceof ClearSpecialsMessage)  return translate((ClearSpecialsMessage)m);
+        else if (m instanceof RandomClearMessage)    return translate((RandomClearMessage)m);
+        else if (m instanceof BlockQuakeMessage)     return translate((BlockQuakeMessage)m);
+        else if (m instanceof BlockBombMessage)      return translate((BlockBombMessage)m);
+        else if (m instanceof GravityMessage)        return translate((GravityMessage)m);
+        else if (m instanceof NukeFieldMessage)      return translate((NukeFieldMessage)m);
+        else if (m instanceof SwitchFieldsMessage)   return translate((SwitchFieldsMessage)m);
         else
         {
             return null;
-        }
+        }        
     }
 
     public String translate(PlineMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("pline ");
         message.append(m.getSlot());
         message.append(" ");
@@ -383,7 +330,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(PlineActMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("plineact ");
         message.append(m.getSlot());
         message.append(" ");
@@ -391,25 +338,9 @@ public class TetrinetProtocol extends AbstractProtocol
         return message.toString();
     }
 
-    public String translate(CommandMessage m)
-    {
-        StringBuilder message = new StringBuilder();
-        message.append("pline ");
-        message.append(m.getSlot());
-        message.append(" /");
-        message.append(m.getCommand());
-
-        for (int i = 0; i < m.getParameterCount(); i++)
-        {
-            message.append(" ");
-            message.append(m.getParameter(i));
-        }
-        return message.toString();
-    }
-
     public String translate(TeamMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("team ");
         message.append(m.getSlot());
         if (m.getName() != null)
@@ -426,12 +357,12 @@ public class TetrinetProtocol extends AbstractProtocol
         {
             // spectator joining
             PlineMessage announce = new PlineMessage();
-            announce.setKey("channel.spectator.join", m.getName());
+            announce.setKey("channel.spectator.join", new Object[] { m.getName() });
             return translate(announce, locale);
         }
         else
         {
-            StringBuilder message = new StringBuilder();
+            StringBuffer message = new StringBuffer();
             message.append("playerjoin ");
             message.append(m.getSlot());
             message.append(" ");
@@ -446,12 +377,12 @@ public class TetrinetProtocol extends AbstractProtocol
         {
             // spectator leaving
             PlineMessage announce = new PlineMessage();
-            announce.setKey("channel.spectator.leave", m.getName());
+            announce.setKey("channel.spectator.leave", new Object[] { m.getName() });
             return translate(announce, locale);
         }
         else
         {
-            StringBuilder message = new StringBuilder();
+            StringBuffer message = new StringBuffer();
             message.append("playerleave ");
             message.append(m.getSlot());
             return message.toString();
@@ -460,7 +391,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(PlayerNumMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("playernum ");
         message.append(m.getSlot());
         return message.toString();
@@ -468,7 +399,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(StartGameMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("startgame 1 ");
         message.append(m.getSlot());
         return message.toString();
@@ -476,7 +407,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(StopGameMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("startgame 0 ");
         message.append(m.getSlot());
         return message.toString();
@@ -485,7 +416,7 @@ public class TetrinetProtocol extends AbstractProtocol
     public String translate(NewGameMessage m)
     {
         Settings s = m.getSettings();
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("newgame ");
         message.append(s.getStackHeight());
         message.append(" ");
@@ -502,51 +433,35 @@ public class TetrinetProtocol extends AbstractProtocol
         message.append(s.getSpecialCapacity());
         message.append(" ");
 
-        // blocks frequency
-        for (Block block : Block.values())
+        for (int i = 0; i < 7; i++)
         {
-            for (int j = 0; j < s.getOccurancy(block); j++)
+            for (int j = 0; j < s.getBlockOccurancy(i); j++)
             {
-                message.append(Integer.toString(block.getValue() + 1));
+                message.append(Integer.toString(i + 1));
             }
         }
 
         message.append(" ");
 
-        // specials frequency
-        for (Special special : Special.values())
+        for (int i = 0; i < 9; i++)
         {
-            for (int j = 0; j < s.getOccurancy(special); j++)
+            for (int j = 0; j < s.getSpecialOccurancy(i); j++)
             {
-                message.append(Integer.toString(special.getValue() + 1));
+                message.append(Integer.toString(i + 1));
             }
         }
 
         message.append(" ");
         message.append(s.getAverageLevels() ? "1" : "0");
         message.append(" ");
-        message.append(s.getClassicRules() ? "1" : "0");
-
-        // extended parameter for 1.14 clients
-        if (s.getSameBlocks() == true)
-        {
-            message.append(" ");
-            String hexstring = Integer.toHexString(m.getSeed()).toUpperCase();
-            // padding to 8 digits
-            for (int i = hexstring.length(); i < 8; i++)
-            {
-                message.append("0");
-            }
-
-            message.append(hexstring);
-        }
+        message.append(s.getClassicRules()  ? "1" : "0");
 
         return message.toString();
     }
 
     public String translate(EndGameMessage m)
     {
-        return "endgame";
+       return "endgame";
     }
 
     public String translate(PauseMessage m)
@@ -566,7 +481,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(GmsgMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("gmsg ");
         message.append(m.getText(locale));
         return message.toString();
@@ -574,7 +489,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(LevelMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("lvl ");
         message.append(m.getSlot());
         message.append(" ");
@@ -584,7 +499,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(FieldMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("f ");
         message.append(m.getSlot());
         if (m.getField() != null)
@@ -597,7 +512,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(PlayerLostMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("playerlost ");
         message.append(m.getSlot());
         return message.toString();
@@ -605,7 +520,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(PlayerWonMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("playerwon ");
         message.append(m.getSlot());
         return message.toString();
@@ -613,7 +528,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(NoConnectingMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("noconnecting ");
         message.append(m.getText());
         return message.toString();
@@ -621,7 +536,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(OneLineAddedMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" cs1 ");
@@ -631,7 +546,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(TwoLinesAddedMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" cs2 ");
@@ -641,7 +556,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(FourLinesAddedMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" cs4 ");
@@ -651,7 +566,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(AddLineMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" a ");
@@ -661,7 +576,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(ClearLineMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" c ");
@@ -671,7 +586,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(NukeFieldMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" n ");
@@ -681,7 +596,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(RandomClearMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" r ");
@@ -691,7 +606,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(SwitchFieldsMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" s ");
@@ -701,7 +616,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(ClearSpecialsMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" b ");
@@ -711,7 +626,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(GravityMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" g ");
@@ -721,7 +636,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(BlockQuakeMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" q ");
@@ -731,7 +646,7 @@ public class TetrinetProtocol extends AbstractProtocol
 
     public String translate(BlockBombMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("sb ");
         message.append(m.getSlot());
         message.append(" o ");
@@ -742,32 +657,33 @@ public class TetrinetProtocol extends AbstractProtocol
     public String translate(SpectatorListMessage m, Locale locale)
     {
         PlineMessage pline = new PlineMessage();
-        pline.setKey("command.speclist.format", StringUtils.join(m.getSpectators().iterator(), ", "));
+
+        StringBuffer message = new StringBuffer();
+        Iterator specators = m.getSpectators().iterator();
+        while (specators.hasNext())
+        {
+            message.append(specators.next());
+            if (specators.hasNext())
+            {
+                message.append(", ");
+            }
+        }
+
+        pline.setKey("command.speclist.format", new Object[] { message.toString() });
 
         return translate(pline, locale);
     }
 
-    public String translate(SmsgMessage m, Locale locale)
-    {
-        StringBuilder message = new StringBuilder();
-        String name = ((Client) m.getSource()).getUser().getName();
-
-        PlineMessage pline = new PlineMessage();
-        pline.setKey("channel.spectator.message", name, m.getText());
-        message.append(translate(pline, locale));
-
-        return message.toString();
-    }
-
     public String translate(WinlistMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("winlist");
-
-        for (Score score : m.getScores())
-        {           
+        Iterator scores = m.getScores().iterator();
+        while (scores.hasNext())
+        {
+            WinlistScore score = (WinlistScore) scores.next();
             message.append(" ");
-            message.append(score.getType() == Score.TYPE_PLAYER ? "p" : "t");
+            message.append(score.getType() == WinlistScore.TYPE_PLAYER ? "p" : "t");
             message.append(score.getName());
             message.append(";");
             message.append(score.getScore());
@@ -775,15 +691,10 @@ public class TetrinetProtocol extends AbstractProtocol
         return message.toString();
     }
 
-    public String translate(NoopMessage m)
-    {
-        return "";
-    }
-
     /**
      * Return the map of the color and style codes for this protocol.
      */
-    public Map<String, String> getStyles()
+    public Map getStyles()
     {
         return styles;
     }
@@ -791,158 +702,24 @@ public class TetrinetProtocol extends AbstractProtocol
     public String applyStyle(String text)
     {
         // to be optimized later
-        Map<String, String> styles = getStyles();
-        if (styles == null) {
-            return text;
-        }
-
-        for (String key : styles.keySet())
+        Map styles = getStyles();
+        if (styles == null) return text;
+        
+        Iterator keys = styles.keySet().iterator();
+        while (keys.hasNext())
         {
-            String value = styles.get(key);
-            if (value == null)
-            {
-                value = "";
-            }
+            String key = (String)keys.next();
+            String value = (String)styles.get(key);
+            if (value == null) { value = ""; }
             text = text.replaceAll("<" + key + ">", value);
             text = text.replaceAll("</" + key + ">", value);
         }
         return text;
     }
 
-    public char getEOL()
+    public String toString()
     {
-        return 0xFF;
-    }
-
-
-    /**
-     * Decodes TetriNET client initialization string
-     *
-     * @param initString initialization string
-     * @return decoded string
-     * @throws IllegalArgumentException thrown if the string can't be decoded
-     */
-    public static String decode(String initString)
-    {
-        // check the size of the init string
-        if (initString.length() % 2 != 0)
-        {
-            throw new IllegalArgumentException("Invalid initialization string, the length is not even");
-        }
-
-        // parse the hex values from the init string
-        int[] dec = new int[initString.length() / 2];
-
-        try
-        {
-            for (int i = 0; i < dec.length; i++)
-            {
-                dec[i] = Integer.parseInt(initString.substring(i * 2, i * 2 + 2), 16);
-            }
-        }
-        catch (NumberFormatException e)
-        {
-            throw new IllegalArgumentException("Invalid initialization string, illegal characters found", e);
-        }
-
-        // find the hash pattern for a tetrinet client
-        String pattern = findHashPattern(dec, false);
-
-        // find the hash pattern for a tetrifast client
-        if (pattern.length() == 0)
-        {
-            pattern = findHashPattern(dec, true);
-        }
-
-        // check the size of the pattern found
-        if (pattern.length() == 0)
-        {
-            throw new IllegalArgumentException("Invalid initialization string, unable to find the pattern");
-        }
-
-        // decode the string
-        StringBuilder s = new StringBuilder();
-
-        for (int i = 1; i < dec.length; i++)
-        {
-            s.append((char) (((dec[i] ^ pattern.charAt((i - 1) % pattern.length())) + 255 - dec[i - 1]) % 255));
-        }
-
-        return s.toString().replace((char) 0, (char) 255);
-    }
-
-    private static String findHashPattern(int[] dec, boolean tetrifast)
-    {
-        // the first characters from the decoded string
-        char[] data = (tetrifast ? TetrifastProtocol.INIT_TOKEN : INIT_TOKEN).substring(0, 10).toCharArray();
-
-        // compute the full hash
-        int[] hash = new int[data.length];
-
-        for (int i = 0; i < data.length; i++)
-        {
-            hash[i] = ((data[i] + dec[i]) % 255) ^ dec[i + 1];
-        }
-
-        // find the length of the hash
-        int length = 5;
-
-        for (int i = 5; i == length && i > 0; i--)
-        {
-            for (int j = 0; j < data.length - length; j++)
-            {
-                if (hash[j] != hash[j + length])
-                {
-                    length--;
-                }
-            }
-        }
-
-        return new String(hash, 0, length);
-    }
-
-    /**
-     * Return the initialization string for the specified user.
-     *
-     * @param nickname  the nickname of the client
-     * @param version   the version of the client
-     * @param ip        the IP of the server
-     * @param tetrifast is this a tetrifast client ?
-     */
-    public static String encode(String nickname, String version, byte[] ip, boolean tetrifast)
-    {
-        // compute the pattern
-        int p = 54 * ip[0] + 41 * ip[1] + 29 * ip[2] + 17 * ip[3];
-        char[] pattern = String.valueOf(p).toCharArray();
-
-        // build the string to encode
-        char[] data = ((tetrifast ? TetrifastProtocol.INIT_TOKEN : INIT_TOKEN) + " " + nickname + " " + version).toCharArray();
-
-        // build the encoded string
-        StringBuilder result = new StringBuilder();
-        char offset = 0x80;
-        result.append(toHex(offset));
-
-        char previous = offset;
-
-        for (int i = 0; i < data.length; i++)
-        {
-            char current = (char) (((previous + data[i]) % 255) ^ pattern[i % pattern.length]);
-            result.append(toHex(current));
-            previous = current;
-        }
-
-        return result.toString().toUpperCase();
-    }
-
-    /**
-     * Return the hex value of the specified byte on 2 digits.
-     */
-    private static String toHex(char c)
-    {
-        String h = Integer.toHexString(c);
-
-        return h.length() > 1 ? h : "0" + h;
+        return "[Protocol name=" + getName() + "]";
     }
 
 }

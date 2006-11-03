@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,9 +18,6 @@
  */
 
 package net.jetrix.config;
-
-import static net.jetrix.config.Block.*;
-import static net.jetrix.config.Special.*;
 
 import java.util.*;
 
@@ -50,12 +47,6 @@ public class Settings
     private boolean defaultSpecialCapacity;
     private boolean defaultAverageLevels;
     private boolean defaultClassicRules;
-    private boolean defaultSameBlocks;
-
-    private boolean defaultSuddenDeathTime;
-    private boolean defaultSuddenDeathMessage;
-    private boolean defaultSuddenDeathLinesAdded;
-    private boolean defaultSuddenDeathDelay;
 
     private int startingLevel;
     private int stackHeight;
@@ -68,19 +59,24 @@ public class Settings
     private int specialOccurancy[];
     private boolean averageLevels;
     private boolean classicRules;
-    private boolean sameBlocks;
 
-    /** The time in seconds before the sudden death mode starts. */
-    private int suddenDeathTime;
+    public static final int BLOCK_LINE      = 0;
+    public static final int BLOCK_SQUARE    = 1;
+    public static final int BLOCK_LEFTL     = 2;
+    public static final int BLOCK_RIGHTL    = 3;
+    public static final int BLOCK_LEFTZ     = 4;
+    public static final int BLOCK_RIGHTZ    = 5;
+    public static final int BLOCK_HALFCROSS = 6;
 
-    /** The message displayed when the sudden death mode starts. */
-    private String suddenDeathMessage;
-
-    /** The delay in seconds between lines additions in sudden death mode. */
-    private int suddenDeathDelay;
-
-    /** The number of lines added in sudden death mode. */
-    private int suddenDeathLinesAdded;
+    public static final int SPECIAL_ADDLINE      = 0;
+    public static final int SPECIAL_CLEARLINE    = 1;
+    public static final int SPECIAL_NUKEFIELD    = 2;
+    public static final int SPECIAL_RANDOMCLEAR  = 3;
+    public static final int SPECIAL_SWITCHFIELD  = 4;
+    public static final int SPECIAL_CLEARSPECIAL = 5;
+    public static final int SPECIAL_GRAVITY      = 6;
+    public static final int SPECIAL_QUAKEFIELD   = 7;
+    public static final int SPECIAL_BLOCKBOMB    = 8;
 
 
     /**
@@ -99,8 +95,8 @@ public class Settings
      */
     public Settings(boolean useDefaultSettings)
     {
-        blockOccurancy = new int[Block.values().length];
-        specialOccurancy = new int [Special.values().length];
+        blockOccurancy = new int[7];
+        specialOccurancy = new int [9];
 
         if (useDefaultSettings)
         {
@@ -115,111 +111,95 @@ public class Settings
             defaultSpecialCapacity = true;
             defaultAverageLevels = true;
             defaultClassicRules = true;
-            defaultSameBlocks = true;
-            defaultSuddenDeathTime = true;
-            defaultSuddenDeathMessage = true;
-            defaultSuddenDeathDelay = true;
-            defaultSuddenDeathLinesAdded = true;
         }
-    }
-
-    /**
-     * Returns the default Settings object.
-     */
-    public static Settings getDefaultSettings()
-    {
-        return defaultSettings;
-    }
-
-    /**
-     * Sets the default Settings object.
-     */
-    public static void setDefaultSettings(Settings defaultSettings)
-    {
-        Settings.defaultSettings = defaultSettings;
-    }
-
-    /**
-     * Tell if the current Settings use the default Settings for all its values.
-     */
-    public boolean useDefaultSettings()
-    {
-        return defaultBlockOccurancy
-                && defaultSpecialOccurancy
-                && defaultStartingLevel
-                && defaultStackHeight
-                && defaultLinesPerLevel
-                && defaultLinesPerSpecial
-                && defaultLevelIncrease
-                && defaultSpecialAdded
-                && defaultSpecialCapacity
-                && defaultAverageLevels
-                && defaultClassicRules
-                && defaultSameBlocks
-                && defaultSuddenDeathTime
-                && defaultSuddenDeathMessage
-                && defaultSuddenDeathDelay
-                && defaultSuddenDeathLinesAdded;
     }
 
     public int getStartingLevel()
     {
-        return isDefaultStartingLevel() ? defaultSettings.getStartingLevel() : startingLevel;
+        if (defaultStartingLevel && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getStartingLevel();
+        else
+            return startingLevel;
     }
 
     public int getStackHeight()
     {
-        return isDefaultStackHeight() ? defaultSettings.getStackHeight() : stackHeight;
+        if (defaultStackHeight && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getStackHeight();
+        else
+            return stackHeight;
     }
 
     public int getLinesPerLevel()
     {
-        return isDefaultLinesPerLevel() ? defaultSettings.getLinesPerLevel() : linesPerLevel;
+        if (defaultLinesPerLevel && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getLinesPerLevel();
+        else
+            return linesPerLevel;
     }
 
     public int getLinesPerSpecial()
     {
-        return isDefaultLinesPerSpecial() ? defaultSettings.getLinesPerSpecial() : linesPerSpecial;
+        if (defaultLinesPerSpecial && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getLinesPerSpecial();
+        else
+            return linesPerSpecial;
     }
 
     public int getLevelIncrease()
     {
-        return isDefaultLevelIncrease() ? defaultSettings.getLevelIncrease() : levelIncrease;
+        if (defaultLevelIncrease && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getLevelIncrease();
+        else
+            return levelIncrease;
     }
 
     public int getSpecialAdded()
     {
-        return isDefaultSpecialAdded() ? defaultSettings.getSpecialAdded() : specialAdded;
+        if (defaultSpecialAdded && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getSpecialAdded();
+        else
+            return specialAdded;
     }
 
     public int getSpecialCapacity()
     {
-        return isDefaultSpecialCapacity() ? defaultSettings.getSpecialCapacity() : specialCapacity;
+        if (defaultSpecialCapacity && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getSpecialCapacity();
+        else
+            return specialCapacity;
     }
 
     public boolean getAverageLevels()
     {
-        return isDefaultAverageLevels() ? defaultSettings.getAverageLevels() : averageLevels;
+        if (defaultAverageLevels && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getAverageLevels();
+        else
+            return averageLevels;
     }
 
     public boolean getClassicRules()
     {
-        return isDefaultClassicRules() ? defaultSettings.getClassicRules() : classicRules;
+        if (defaultClassicRules && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getClassicRules();
+        else
+            return classicRules;
     }
 
-    public boolean getSameBlocks()
+    public int getBlockOccurancy(int piece)
     {
-        return isDefaultSameBlocks() ? defaultSettings.getSameBlocks() : sameBlocks;
+        if (defaultBlockOccurancy && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getBlockOccurancy(piece);
+        else
+            return blockOccurancy[piece];
     }
 
-    public int getOccurancy(Block piece)
+    public int getSpecialOccurancy(int special)
     {
-        return isDefaultBlockOccurancy() ? defaultSettings.getOccurancy(piece) : blockOccurancy[piece.getValue()];
-    }
-
-    public int getOccurancy(Special special)
-    {
-        return isDefaultSpecialOccurancy() ? defaultSettings.getOccurancy(special) : specialOccurancy[special.getValue()];
+        if (defaultSpecialOccurancy && defaultSettings!=null && this!=defaultSettings)
+            return defaultSettings.getSpecialOccurancy(special);
+        else
+            return specialOccurancy[special];
     }
 
     public void setStartingLevel(int startingLevel)
@@ -276,67 +256,7 @@ public class Settings
         defaultClassicRules = false;
     }
 
-    public void setSameBlocks(boolean sameBlocks)
-    {
-        this.sameBlocks = sameBlocks;
-        defaultSameBlocks = false;
-    }
-
-
-    public int getSuddenDeathTime()
-    {
-        return isDefaultSuddenDeathTime() ? defaultSettings.getSuddenDeathTime() : suddenDeathTime;
-    }
-
-    public void setSuddenDeathTime(int suddenDeathTime)
-    {
-        this.suddenDeathTime = suddenDeathTime;
-        defaultSuddenDeathTime = false;
-    }
-
-    public String getSuddenDeathMessage()
-    {
-        return isDefaultSuddenDeathMessage() ? defaultSettings.getSuddenDeathMessage() : suddenDeathMessage;
-    }
-
-    public void setSuddenDeathMessage(String suddenDeathMessage)
-    {
-        this.suddenDeathMessage = suddenDeathMessage;
-        defaultSuddenDeathMessage = false;
-    }
-
-    public int getSuddenDeathLinesAdded()
-    {
-        return isDefaultSuddenDeathLinesAdded() ? defaultSettings.getSuddenDeathLinesAdded() : suddenDeathLinesAdded;
-    }
-
-    public void setSuddenDeathLinesAdded(int suddenDeathLinesAdded)
-    {
-        this.suddenDeathLinesAdded = suddenDeathLinesAdded;
-        defaultSuddenDeathLinesAdded = false;
-    }
-
-    public int getSuddenDeathDelay()
-    {
-        return isDefaultSuddenDeathDelay() ? defaultSettings.getSuddenDeathDelay() : suddenDeathDelay;
-    }
-
-    public void setSuddenDeathDelay(int suddenDeathDelay)
-    {
-        this.suddenDeathDelay = suddenDeathDelay;
-        defaultSuddenDeathDelay = false;
-    }
-
-
-    /**
-     * Set the occurancy of a block.
-     *
-     * @since 0.2
-     *
-     * @param block
-     * @param occurancy
-     */
-    public void setOccurancy(Block block, int occurancy)
+    public void setBlockOccurancy(int piece, int occurancy)
     {
         if (defaultBlockOccurancy)
         {
@@ -344,18 +264,10 @@ public class Settings
             Arrays.fill(blockOccurancy, 0);
         }
 
-        blockOccurancy[block.getValue()] = occurancy;
+        blockOccurancy[piece] = occurancy;
     }
 
-    /**
-     * Set the occurancy of a special block
-     *
-     * @since 0.2
-     *
-     * @param special
-     * @param occurancy
-     */
-    public void setOccurancy(Special special, int occurancy)
+    public void setSpecialOccurancy(int special, int occurancy)
     {
         if (defaultSpecialOccurancy)
         {
@@ -363,7 +275,7 @@ public class Settings
             Arrays.fill(specialOccurancy, 0);
         }
 
-        specialOccurancy[special.getValue()] = occurancy;
+        specialOccurancy[special] = occurancy;
     }
 
     /**
@@ -375,44 +287,32 @@ public class Settings
         int sum = 0;
 
         // computing sum
-        for (int i = 0; i < tab.length; i++)
+        for (int i=0; i<tab.length; i++)
         {
-            if (tab[i] < 0)
-            {
-                tab[i] = 0;
-            }
+            if (tab[i]<0) { tab[i]=0; }
             sum = sum + tab[i];
         }
 
         if (sum != 100)
         {
             // equalization
-            if (sum == 0)
+            if (sum==0)
             {
-                int v = 100 / tab.length;
-                for (int i = 0; i < tab.length; i++)
-                {
-                    tab[i] = v;
-                }
+                int v = 100/tab.length;
+                for (int i=0; i<tab.length; i++) { tab[i] = v; }
             }
             else
             {
-                float f = 100f / sum;
-                for (int i = 0; i < tab.length; i++)
-                {
-                    tab[i] = (int) (tab[i] * f);
-                }
+                float f = 100f/sum;
+                for (int i=0; i<tab.length; i++) { tab[i] = (int)(tab[i] * f); }
             }
 
             // distributing points left
             sum = 0;
-            for (int i = 0; i < tab.length; i++)
-            {
-                sum = sum + tab[i];
-            }
+            for (int i=0; i<tab.length; i++) { sum = sum + tab[i]; }
             int r = 100 - sum;
             int i = 0;
-            while (i < tab.length && r > 0)
+            while( i < tab.length && r > 0)
             {
                 tab[i] = tab[i] + 1;
                 r = r - 1;
@@ -433,169 +333,38 @@ public class Settings
     }
 
     /**
-     * Tells if the block occurancies of the default settings are used.
+     * Returns the default Settings object.
      */
-    public boolean isDefaultBlockOccurancy()
+    public static Settings getDefaultSettings()
     {
-        return defaultBlockOccurancy && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultBlockOccurancy(boolean defaultBlockOccurancy)
-    {
-        this.defaultBlockOccurancy = defaultBlockOccurancy;
+        return defaultSettings;
     }
 
     /**
-     * Tells if the special occurancies of the default settings are used.
+     * Sets the default Settings object.
      */
-    public boolean isDefaultSpecialOccurancy()
+    public static void setDefaultSettings(Settings defaultSettings)
     {
-        return defaultSpecialOccurancy && defaultSettings != null && this != defaultSettings;
+        Settings.defaultSettings = defaultSettings;
     }
 
-    public void setDefaultSpecialOccurancy(boolean defaultSpecialOccurancy)
-    {
-        this.defaultSpecialOccurancy = defaultSpecialOccurancy;
-    }
 
-    public boolean isDefaultStartingLevel()
-    {
-        return defaultStartingLevel && defaultSettings != null && this != defaultSettings;
-    }
+    public void setLineOccurancy(int occurancy) { setBlockOccurancy(BLOCK_LINE, occurancy); }
+    public void setSquareOccurancy(int occurancy) { setBlockOccurancy(BLOCK_SQUARE, occurancy); }
+    public void setLeftLOccurancy(int occurancy) { setBlockOccurancy(BLOCK_LEFTL, occurancy); }
+    public void setRightLOccurancy(int occurancy) { setBlockOccurancy(BLOCK_RIGHTL, occurancy); }
+    public void setLeftZOccurancy(int occurancy) { setBlockOccurancy(BLOCK_LEFTZ, occurancy); }
+    public void setRightZOccurancy(int occurancy) { setBlockOccurancy(BLOCK_RIGHTZ, occurancy); }
+    public void setHalfCrossOccurancy(int occurancy) { setBlockOccurancy(BLOCK_HALFCROSS, occurancy); }
 
-    public void setDefaultStartingLevel(boolean defaultStartingLevel)
-    {
-        this.defaultStartingLevel = defaultStartingLevel;
-    }
-
-    public boolean isDefaultStackHeight()
-    {
-        return defaultStackHeight && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultStackHeight(boolean defaultStackHeight)
-    {
-        this.defaultStackHeight = defaultStackHeight;
-    }
-
-    public boolean isDefaultLinesPerLevel()
-    {
-        return defaultLinesPerLevel && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultLinesPerLevel(boolean defaultLinesPerLevel)
-    {
-        this.defaultLinesPerLevel = defaultLinesPerLevel;
-    }
-
-    public boolean isDefaultLinesPerSpecial()
-    {
-        return defaultLinesPerSpecial && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultLinesPerSpecial(boolean defaultLinesPerSpecial)
-    {
-        this.defaultLinesPerSpecial = defaultLinesPerSpecial;
-    }
-
-    public boolean isDefaultLevelIncrease()
-    {
-        return defaultLevelIncrease && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultLevelIncrease(boolean defaultLevelIncrease)
-    {
-        this.defaultLevelIncrease = defaultLevelIncrease;
-    }
-
-    public boolean isDefaultSpecialAdded()
-    {
-        return defaultSpecialAdded && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultSpecialAdded(boolean defaultSpecialAdded)
-    {
-        this.defaultSpecialAdded = defaultSpecialAdded;
-    }
-
-    public boolean isDefaultSpecialCapacity()
-    {
-        return defaultSpecialCapacity && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultSpecialCapacity(boolean defaultSpecialCapacity)
-    {
-        this.defaultSpecialCapacity = defaultSpecialCapacity;
-    }
-
-    public boolean isDefaultAverageLevels()
-    {
-        return defaultAverageLevels && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultAverageLevels(boolean defaultAverageLevels)
-    {
-        this.defaultAverageLevels = defaultAverageLevels;
-    }
-
-    public boolean isDefaultClassicRules()
-    {
-        return defaultClassicRules && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultClassicRules(boolean defaultClassicRules)
-    {
-        this.defaultClassicRules = defaultClassicRules;
-    }
-
-    public boolean isDefaultSameBlocks()
-    {
-        return defaultSameBlocks && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultSameBlocks(boolean defaultSameBlocks)
-    {
-        this.defaultSameBlocks = defaultSameBlocks;
-    }
-
-    public boolean isDefaultSuddenDeathTime()
-    {
-        return defaultSuddenDeathTime && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultSuddenDeathTime(boolean defaultSuddenDeathTime)
-    {
-        this.defaultSuddenDeathTime = defaultSuddenDeathTime;
-    }
-
-    public boolean isDefaultSuddenDeathMessage()
-    {
-        return defaultSuddenDeathMessage && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultSuddenDeathMessage(boolean defaultSuddenDeathMessage)
-    {
-        this.defaultSuddenDeathMessage = defaultSuddenDeathMessage;
-    }
-
-    public boolean isDefaultSuddenDeathLinesAdded()
-    {
-        return defaultSuddenDeathLinesAdded && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultSuddenDeathLinesAdded(boolean defaultSuddenDeathLinesAdded)
-    {
-        this.defaultSuddenDeathLinesAdded = defaultSuddenDeathLinesAdded;
-    }
-
-    public boolean isDefaultSuddenDeathDelay()
-    {
-        return defaultSuddenDeathDelay && defaultSettings != null && this != defaultSettings;
-    }
-
-    public void setDefaultSuddenDeathDelay(boolean defaultSuddenDeathDelay)
-    {
-        this.defaultSuddenDeathDelay = defaultSuddenDeathDelay;
-    }
+    public void setAddLineOccurancy(int occurancy) { setSpecialOccurancy(SPECIAL_ADDLINE, occurancy); }
+    public void setClearLineOccurancy(int occurancy) { setSpecialOccurancy(SPECIAL_CLEARLINE, occurancy); }
+    public void setNukeFieldOccurancy(int occurancy) { setSpecialOccurancy(SPECIAL_NUKEFIELD, occurancy); }
+    public void setRandomClearOccurancy(int occurancy) { setSpecialOccurancy(SPECIAL_RANDOMCLEAR, occurancy); }
+    public void setSwitchFieldOccurancy(int occurancy) { setSpecialOccurancy(SPECIAL_SWITCHFIELD, occurancy); }
+    public void setClearSpecialOccurancy(int occurancy) { setSpecialOccurancy(SPECIAL_CLEARSPECIAL, occurancy); }
+    public void setGravityOccurancy(int occurancy) { setSpecialOccurancy(SPECIAL_GRAVITY, occurancy); }
+    public void setQuakeFieldOccurancy(int occurancy) { setSpecialOccurancy(SPECIAL_QUAKEFIELD, occurancy); }
+    public void setBlockBombOccurancy(int occurancy) { setSpecialOccurancy(SPECIAL_BLOCKBOMB, occurancy); }
 
 }

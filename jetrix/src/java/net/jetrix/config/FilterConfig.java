@@ -19,17 +19,24 @@
 
 package net.jetrix.config;
 
+import java.util.*;
+
 /**
  * Filter configuration.
  *
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class FilterConfig extends Configuration
+public class FilterConfig
 {
     private String name;
     private String classname;
-    private boolean global;
+    private Properties props;
+
+    public FilterConfig()
+    {
+        props = new Properties();
+    }
 
     public void setName(String name)
     {
@@ -51,14 +58,14 @@ public class FilterConfig extends Configuration
         return classname;
     }
 
-    public boolean isGlobal()
+    public void setParameter(String name, String value)
     {
-        return global;
+        props.setProperty(name, value);
     }
 
-    public void setGlobal(boolean global)
+    public String getParameter(String name)
     {
-        this.global = global;
+        return props.getProperty(name);
     }
 
     public String toString()

@@ -20,7 +20,6 @@
 package net.jetrix.filter;
 
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
@@ -39,23 +38,23 @@ public class FloodFilter extends GenericFilter
     private int delay = 5000;
 
     /** Minimum time between two warnings (in seconds) */
-    private int warningPeriod = 10;
+    private long warningPeriod = 10;
 
     /** Date of the last warning */
     private long lastWarning;
 
-    public void init()
-    {       
+    public void init(FilterConfig conf)
+    {
         // reading parameters
-        capacity = config.getInt("capacity", capacity);
-        delay = config.getInt("delay", delay);
-        warningPeriod = config.getInt("warningPeriod", warningPeriod);
+        try { this.capacity = Integer.parseInt(conf.getParameter("capacity")); } catch (Exception e) {}
+        try { this.delay = Integer.parseInt(conf.getParameter("delay")); } catch (Exception e) {}
+        try { this.warningPeriod = Integer.parseInt(conf.getParameter("warningPeriod")); } catch (Exception e) {}
 
         timestamp = new long[6][capacity];
         index = new int[6];
     }
 
-    public void onMessage(PlineMessage m, List<Message> out)
+    public void onMessage(PlineMessage m, List out)
     {
         int slot = m.getSlot();
         // no check for server messages
@@ -67,26 +66,21 @@ public class FloodFilter extends GenericFilter
 
         String text = m.getText();
         float charsByLine = 70;
-        int lineCount = (int) Math.ceil(text.length() / charsByLine);
+        int lineCount = (int)Math.ceil( text.length()/charsByLine );
 
         long now = System.currentTimeMillis();
         boolean isRateExceeded = false;
-        for (int i = 0; i < lineCount; i++)
-        {
-            isRateExceeded = isRateExceeded || isRateExceeded(slot - 1, now);
-        }
+        for (int i = 0; i < lineCount; i++) { isRateExceeded = isRateExceeded || isRateExceeded(slot-1, now); }
 
-        if (slot > 0 && isRateExceeded)
-        {
-            if ((now - lastWarning) > warningPeriod * 1000)
-            {
+        if (slot > 0 && isRateExceeded ) {
+            if ( ( now - lastWarning ) > warningPeriod * 1000 ) {
                 User user = getChannel().getPlayer(slot);
-                out.add(new PlineMessage("filter.flood.blocked", user.getName()));
+                PlineMessage warning = new PlineMessage();
+                warning.setKey("filter.flood.blocked", new Object[] { user.getName() });
+                out.add(warning);
                 lastWarning = now;
             }
-        }
-        else
-        {
+        } else {
             out.add(m);
         }
     }
@@ -108,24 +102,12 @@ public class FloodFilter extends GenericFilter
         return (t - t1) < delay;
     }
 
-    public String getName()
-    {
-        return "Flood Filter";
-    }
+    public String getName() { return "Flood Filter"; }
 
-    public String getDescription()
-    {
-        return "Blocks exceeding messages on pline";
-    }
+    public String getDescription() { return "Blocks exceeding messages on pline"; }
 
-    public String getVersion()
-    {
-        return "1.0";
-    }
+    public String getVersion() { return "1.0"; }
 
-    public String getAuthor()
-    {
-        return "Emmanuel Bourg";
-    }
+    public String getAuthor() { return "Emmanuel Bourg"; }
 
 }

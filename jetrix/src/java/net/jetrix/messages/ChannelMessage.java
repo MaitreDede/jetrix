@@ -40,14 +40,4 @@ public abstract class ChannelMessage extends Message
     {
         this.slot = slot;
     }
-
-    public Channel getChannel()
-    {
-        return (Channel) getDestination();
-    }
-
-    public void setChannel(Channel channel)
-    {
-        setDestination(channel);
-    }
 }

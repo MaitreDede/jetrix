@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +20,6 @@
 package net.jetrix.commands;
 
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.messages.*;
 
@@ -30,11 +29,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class MoveCommand extends AbstractCommand implements ParameterCommand
+public class MoveCommand implements Command
 {
-    public String getAlias()
+    private int accessLevel = 0;
+
+    public String[] getAliases()
     {
-        return "move";
+        return (new String[] { "move" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -42,26 +48,43 @@ public class MoveCommand extends AbstractCommand implements ParameterCommand
         return "/move <" + Language.getText("command.params.player_num", locale) + "> <" + Language.getText("command.params.slot_num", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 2;
+        return Language.getText("command.move.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
-        // parse the two slot numbers
-        int slot1 = m.getIntParameter(0, 0);
-        int slot2 = m.getIntParameter(1, 0);
-
-        if (slot1 >= 1 && slot1 <= 6 && slot2 >= 1 && slot2 <= 6 && slot1 != slot2)
+        if (m.getParameterCount() >= 2)
         {
-            // send the switch message to the channel
-            PlayerSwitchMessage pswitch = new PlayerSwitchMessage();
-            pswitch.setSlot1(slot1);
-            pswitch.setSlot2(slot2);
-            client.getChannel().send(pswitch);
+            // parse the two slot numbers
+            int slot1 = 0;
+            int slot2 = 0;
+
+            try
+            {
+                slot1 = Integer.parseInt(m.getParameter(0));
+                slot2 = Integer.parseInt(m.getParameter(1));
+            }
+            catch (NumberFormatException e) { }
+
+            if (slot1 >= 1 && slot1 <= 6 && slot2 >= 1 && slot2 <= 6) {
+                // send the switch message to the channel
+                PlayerSwitchMessage pswitch = new PlayerSwitchMessage();
+                pswitch.setSlot1(slot1);
+                pswitch.setSlot2(slot2);
+                client.getChannel().sendMessage(pswitch);
+            }
+        }
+        else
+        {
+            // not enough parameters
+            Locale locale = client.getUser().getLocale();
+            String message = "<red>" + m.getCommand() + "<blue> <" + Language.getText("command.params.player_num", locale) + "> <" + Language.getText("command.params.slot_num", locale) + ">";
+            PlineMessage response = new PlineMessage(message);
+            client.sendMessage(response);
         }
     }
 }

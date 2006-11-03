@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,8 +19,6 @@
 
 package net.jetrix.commands;
 
-import static java.lang.Math.*;
-
 import java.util.*;
 import net.jetrix.*;
 import net.jetrix.messages.*;
@@ -31,8 +29,9 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class RandomCommand extends AbstractCommand
+public class RandomCommand implements Command
 {
+    private int accessLevel = 0;
     private Random random = new Random();
 
     public String[] getAliases()
@@ -40,14 +39,24 @@ public class RandomCommand extends AbstractCommand
         return (new String[] { "random", "roll" });
     }
 
+    public int getAccessLevel()
+    {
+        return accessLevel;
+    }
+
     public String getUsage(Locale locale)
     {
         return "/random <min> <max>";
     }
 
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.random.description", locale);
+    }
+
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
         // get the minimum and maximum values
         int min = 1;
@@ -55,18 +64,19 @@ public class RandomCommand extends AbstractCommand
 
         if (m.getParameterCount() >= 2)
         {
-            int a = m.getIntParameter(0, min);
-            int b = m.getIntParameter(1, max);
-
-            min = min(a, b);
-            max = max(a, b);
+            try
+            {
+                min = Integer.parseInt(m.getParameter(0));
+                max = Integer.parseInt(m.getParameter(1));
+            }
+            catch (NumberFormatException e) { /* keep the default values */ }
         }
 
-        int result = random.nextInt(abs(max - min) + 1);
+        int result = random.nextInt((int)Math.abs(max - min) + 1);
 
         // display the result
         PlineMessage response = new PlineMessage();
-        response.setKey("command.random.result", client.getUser().getName(), min, max, (result + min));
-        client.getChannel().send(response);
+        response.setKey("command.random.result", new Object[] { client.getUser().getName(), new Integer(min), new Integer(max), new Integer(result + min) });
+        client.getChannel().sendMessage(response);
     }
 }

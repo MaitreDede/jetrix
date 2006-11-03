@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,11 +30,18 @@ import java.util.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class PetitionCommand extends AbstractCommand implements ParameterCommand
+public class PetitionCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
-        return (new String[]{"petition", "omsg"});
+        return (new String[] { "petition", "omsg" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -42,41 +49,53 @@ public class PetitionCommand extends AbstractCommand implements ParameterCommand
         return "/petition <" + Language.getText("command.params.message", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 1;
+        return Language.getText("command.petition.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        String cmd = m.getCommand();
+        Client client = (Client)m.getSource();
 
-        Iterator<Client> operators = ClientRepository.getInstance().getOperators();
-
-        if (operators.hasNext())
+        if (m.getParameterCount() >= 1)
         {
-            PlineMessage petition = new PlineMessage();
-            String message = m.getText();
-            petition.setKey("command.tell.format", client.getUser().getName(), message);
-            petition.setSource(client);
+            Iterator operators = ClientRepository.getInstance().getOperators();
 
-            while (operators.hasNext())
+            if (operators.hasNext())
             {
-                Client operator = operators.next();
-                operator.send(petition);
-                operator.getUser().setProperty("command.tell.reply_to", client.getUser().getName());
-            }
+                PlineMessage petition = new PlineMessage();
+                String message = m.getText();
+                petition.setKey("command.tell.format", new Object[] { client.getUser().getName(), message });
 
-            PlineMessage response = new PlineMessage();
-            response.setKey("command.petition.sent");
-            client.send(response);
+                while (operators.hasNext())
+                {
+                    Client operator = (Client) operators.next();
+                    operator.sendMessage(petition);
+                    operator.getUser().setProperty("command.tell.reply_to", client.getUser().getName());
+                }
+
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.petition.sent");
+                client.sendMessage(response);
+            }
+            else
+            {
+                // no operator online
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.petition.no_operator");
+                client.sendMessage(response);
+            }
         }
         else
         {
-            // no operator online
+            // not enough parameters
+            Locale locale = client.getUser().getLocale();
             PlineMessage response = new PlineMessage();
-            response.setKey("command.petition.no_operator");
-            client.send(response);
+            String message = "<red>" + cmd + " <blue><" + Language.getText("command.params.message", locale) + ">";
+            response.setText(message);
+            client.sendMessage(response);
         }
     }
 }

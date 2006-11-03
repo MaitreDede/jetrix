@@ -19,13 +19,10 @@
 
 package net.jetrix.winlist;
 
-import java.io.*;
 import java.util.*;
-import java.util.logging.*;
+import java.io.*;
 
-import net.jetrix.messages.*;
-import net.jetrix.config.*;
-import net.jetrix.*;
+import net.jetrix.winlist.*;
 
 /**
  * A standard winlist using the same scoring as the original TetriNET : the
@@ -39,17 +36,14 @@ import net.jetrix.*;
  */
 public class SimpleWinlist implements Winlist
 {
-    private String id;
-    protected List<Score> scores;
-    protected boolean initialized = false;
-    protected boolean persistent = true;
 
-    protected Logger log = Logger.getLogger("net.jetrix");
-    protected WinlistConfig config;
+    private String id;
+    private List scores;
+    private boolean initialized = false;
 
     public SimpleWinlist()
     {
-        scores = new ArrayList<Score>();
+        scores = new ArrayList();
     }
 
     public String getId()
@@ -62,51 +56,31 @@ public class SimpleWinlist implements Winlist
         this.id = id;
     }
 
-    public void init(WinlistConfig config)
+    public synchronized WinlistScore getScore(String name, int type)
     {
-        this.config = config;
-    }
-
-    public WinlistConfig getConfig()
-    {
-        return config;
-    }
-
-    public boolean isPersistent()
-    {
-        return persistent;
-    }
-
-    public void setPersistent(boolean persistent)
-    {
-        this.persistent = persistent;
-    }
-
-    public synchronized Score getScore(String name, int type)
-    {
-        if (!initialized && persistent)
+        if (!initialized)
         {
             load();
         }
 
-        Score score = null;
+        WinlistScore score = null;
 
-        Score example = new Score();
+        WinlistScore example = new WinlistScore();
         example.setName(name);
         example.setType(type);
 
         int i = scores.indexOf(example);
         if (i != -1)
         {
-            score = (Score) scores.get(i);
+            score = (WinlistScore) scores.get(i);
         }
 
         return score;
     }
 
-    public synchronized List<Score> getScores(long offset, long length)
+    public synchronized List getScores(long offset, long length)
     {
-        if (!initialized && persistent)
+        if (!initialized)
         {
             load();
         }
@@ -116,104 +90,63 @@ public class SimpleWinlist implements Winlist
 
     public synchronized void saveGameResult(GameResult result)
     {
-        if (!initialized && persistent)
+        if (!initialized)
         {
             load();
         }
 
-        int teamCount = result.getTeamCount();
+        int teamCount = getTeamCount(result);
         if (teamCount == 1)
         {
             return;
         }
 
         // reward the winning player or team
-        Score score1 = null;
-        long previousRank1 = 0;
-        long previousScore1 = 0;
-        Collection<GamePlayer> winners = result.getPlayersAtRank(1);
-        GamePlayer winner = winners.iterator().next();
-
+        Collection winners = result.getPlayersAtRank(1);
+        Iterator it = winners.iterator();
+        GamePlayer winner = (GamePlayer) it.next();
         if (winner.isWinner())
         {
             String name = winner.getTeamName() == null ? winner.getName() : winner.getTeamName();
-            int type = winner.getTeamName() == null ? Score.TYPE_PLAYER : Score.TYPE_TEAM;
-            score1 = getScore(name, type);
-            previousRank1 = scores.indexOf(score1) + 1;
-            previousRank1 = previousRank1 == 0 ? scores.size() + 1 : previousRank1;
-
-            if (score1 == null)
+            int type = winner.getTeamName() == null ? WinlistScore.TYPE_PLAYER : WinlistScore.TYPE_TEAM;
+            WinlistScore score = getScore(name, type);
+            if (score == null)
             {
                 // add a new entry into the winlist
-                score1 = new Score();
-                score1.setName(name);
-                score1.setType(type);
-                scores.add(score1);
+                score = new WinlistScore();
+                score.setName(name);
+                score.setType(type);
+                scores.add(score);
             }
-
-            previousScore1 = score1.getScore();
             int points = teamCount >= 3 ? 3 : 2;
-            score1.setScore(score1.getScore() + points);
+            score.setScore(score.getScore() + points);
         }
 
         // reward the second player or team
-        Score score2 = null;
-        long previousRank2 = 0;
-        long previousScore2 = 0;
-        Collection<GamePlayer> seconds = result.getPlayersAtRank(2);
-        GamePlayer second = seconds.iterator().next();
-
+        Collection seconds = result.getPlayersAtRank(2);
+        it = seconds.iterator();
+        GamePlayer second = (GamePlayer) it.next();
         if (teamCount >= 5)
         {
             String name = second.getTeamName() == null ? second.getName() : second.getTeamName();
-            int type = second.getTeamName() == null ? Score.TYPE_PLAYER : Score.TYPE_TEAM;
-            score2 = getScore(name, type);
-            previousRank2 = scores.indexOf(score1) + 1;
-            previousRank2 = previousRank2 == 0 ? scores.size() + 1 : previousRank2;
-
-            if (score2 == null)
+            int type = second.getTeamName() == null ? WinlistScore.TYPE_PLAYER : WinlistScore.TYPE_TEAM;
+            WinlistScore score = getScore(name, type);
+            if (score == null)
             {
                 // add a new entry into the winlist
-                score2 = new Score();
-                score2.setName(name);
-                score2.setType(type);
-                scores.add(score2);
+                score = new WinlistScore();
+                score.setName(name);
+                score.setType(type);
+                scores.add(score);
             }
-
-            previousScore2 = score2.getScore();
-            score2.setScore(score2.getScore() + 1);
+            score.setScore(score.getScore() + 1);
         }
 
         // sort the winlist
         Collections.sort(scores, new ScoreComparator());
 
-        // announce the new scores of the winners
-        Channel channel = result.getChannel();
-        if (channel != null && config.getBoolean("display.score", false))
-        {
-            channel.send(getGainMessage(score1, previousScore1, previousRank1));
-            if (score2 != null)
-            {
-                channel.send(getGainMessage(score2, previousScore2, previousRank2));
-            }
-        }
-
         // save the winlist to the external file
-        if (persistent)
-        {
-            save();
-        }
-    }
-
-    public void clear()
-    {
-        scores.clear();
         save();
-    }
-
-    public int size()
-    {
-        return scores.size();
     }
 
     /**
@@ -221,11 +154,6 @@ public class SimpleWinlist implements Winlist
      */
     protected void load()
     {
-        if (log.isLoggable(Level.FINE))
-        {
-            log.fine("loading winlist " + getId());
-        }
-
         if (id != null)
         {
             BufferedReader reader = null;
@@ -239,30 +167,20 @@ public class SimpleWinlist implements Winlist
                     while ((line = reader.readLine()) != null)
                     {
                         String[] fields = line.split("\t");
-                        Score score = new Score();
+                        WinlistScore score = new WinlistScore();
                         score.setName(fields[2]);
                         score.setScore(Long.parseLong(fields[1]));
-                        score.setType("p".equals(fields[0]) ? Score.TYPE_PLAYER : Score.TYPE_TEAM);
+                        score.setType("p".equals(fields[0]) ? WinlistScore.TYPE_PLAYER : WinlistScore.TYPE_TEAM);
                         scores.add(score);
                     }
                 }
                 catch (Exception e)
                 {
-                    log.log(Level.WARNING, e.getMessage(), e);
+                    e.printStackTrace();
                 }
                 finally
                 {
-                    try
-                    {
-                        if (reader != null)
-                        {
-                            reader.close();
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        log.log(Level.WARNING, e.getMessage(), e);
-                    }
+                    try { if (reader != null) { reader.close(); } } catch (Exception e) { e.printStackTrace(); }
                 }
             }
         }
@@ -281,11 +199,12 @@ public class SimpleWinlist implements Winlist
             try
             {
                 writer = new BufferedWriter(new FileWriter(id + ".winlist"));
-
-                for (Score score : scores)
+                Iterator it = scores.iterator();
+                while (it.hasNext())
                 {
-                    StringBuilder line = new StringBuilder();
-                    line.append(score.getType() == Score.TYPE_PLAYER ? "p" : "t");
+                    WinlistScore score = (WinlistScore) it.next();
+                    StringBuffer line = new StringBuffer();
+                    line.append(score.getType() == WinlistScore.TYPE_PLAYER ? "p" : "t");
                     line.append("\t");
                     line.append(score.getScore());
                     line.append("\t");
@@ -297,45 +216,40 @@ public class SimpleWinlist implements Winlist
             }
             catch (Exception e)
             {
-                log.log(Level.WARNING, e.getMessage(), e);
+                e.printStackTrace();
             }
             finally
             {
-                try
-                {
-                    if (writer != null)
-                    {
-                        writer.close();
-                    }
-                }
-                catch (Exception e)
-                {
-                    log.log(Level.WARNING, e.getMessage(), e);
-                }
+                try { if (writer != null) { writer.close(); } } catch (Exception e) { e.printStackTrace(); }
             }
         }
     }
 
-    /**
-     * Build a message displaying the new score and rank of a winner.
-     */
-    protected PlineMessage getGainMessage(Score score, long previousScore, long previousRank)
+    private int getTeamCount(GameResult result)
     {
-        StringBuilder key = new StringBuilder();
-        key.append("channel.score.");
-        key.append(score.getType() == Score.TYPE_PLAYER ? "player" : "team");
-        key.append(".");
-        key.append(score.getScore() - previousScore > 1 ? "points" : "point");
+        Map teams = new HashMap();
 
-        long rank = scores.indexOf(score) + 1;
-        if (rank == 0)
+        int teamCount = 0;
+
+        Iterator players = result.getGamePlayers().iterator();
+
+        while (players.hasNext())
         {
-            rank = scores.size() + 1;
+            GamePlayer player = (GamePlayer) players.next();
+
+            String team = player.getTeamName();
+
+            if (team == null)
+            {
+                teamCount++;
+            }
+            else
+            {
+                teams.put(team, team);
+            }
         }
 
-        PlineMessage message = new PlineMessage();
-        message.setKey(key.toString(), score.getName(), score.getScore() - previousScore, score.getScore(), rank, previousRank - rank);
-        return message;
+        return teamCount + teams.size();
     }
 
 }

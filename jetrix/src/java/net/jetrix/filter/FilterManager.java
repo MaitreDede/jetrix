@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,13 +34,13 @@ import java.lang.reflect.*;
 public class FilterManager
 {
     private static FilterManager instance = new FilterManager();
-    private Map<String, MessageFilter> staticFilters;
-    private Map<String, String> filterAliases;
+    private Map staticFilters;
+    private Map filterAliases;
 
     private FilterManager()
     {
-        staticFilters = new LinkedHashMap<String, MessageFilter>();
-        filterAliases = new LinkedHashMap<String, String>();
+        staticFilters = new HashMap();
+        filterAliases = new HashMap();
     }
 
     /**
@@ -53,7 +53,7 @@ public class FilterManager
 
     /**
      * Returns a filter of the specified class. If the filter is declared as
-     * a shared, the instance will be stored and returned on further calls
+     * a singleton, the instance will be stored and returned on further calls
      * for the same filter.
      *
      * @param classname Classname of the filter to return
@@ -64,23 +64,21 @@ public class FilterManager
     {
         // is there an entry for this class in the hashtable ?
         Object obj = staticFilters.get(classname);
-        if (obj != null)
-        {
-            return (MessageFilter) obj;
-        }
+        if (obj != null) { return (MessageFilter)obj; }
 
         MessageFilter filter = null;
 
-        try
-        {
-            // create a new filter
-            filter = (MessageFilter) Class.forName(classname).newInstance();
+        try {
+            // checking if the filter is a singleton
+            Class filterClass = Class.forName(classname);
+            Method isSingletonMethod = filterClass.getMethod("isSingleton", null);
+            Boolean isSingleton = (Boolean) isSingletonMethod.invoke(null, null);
 
-            // add the filter to the hashtable if it's a shared filter
-            if (filter.isShared())
-            {
-                staticFilters.put(classname, filter);
-            }
+            // constructing a new filter
+            filter = (MessageFilter) filterClass.newInstance();
+
+            // adding filter to the hashtable if it's a singleton
+            if (isSingleton.booleanValue()) { staticFilters.put(classname, filter); }
         }
         catch (Exception e)
         {
@@ -99,11 +97,11 @@ public class FilterManager
      */
     public MessageFilter getFilterByName(String name) throws FilterException
     {
-        String classname = filterAliases.get(name);
+        Object classname = filterAliases.get(name);
 
         if (classname != null)
         {
-            return getFilter(classname);
+            return getFilter((String) classname);
         }
         else
         {
@@ -120,16 +118,6 @@ public class FilterManager
     public void addFilterAlias(String name, String classname)
     {
         filterAliases.put(name, classname);
-    }
-
-    /**
-     * Return the map of filter aliases
-     *
-     * @since 0.2
-     */
-    public Map<String, String> getFilterAliases()
-    {
-        return filterAliases;
     }
 
 }

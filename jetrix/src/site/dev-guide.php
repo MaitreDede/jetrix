@@ -80,7 +80,7 @@ The TetriFast protocol use two different messages :
 Tetrix first introduced a query protocol to get easily a list of players and
 channels on TetriNET servers. This protocol consists in 4 commands :
 <tt>playerquery</tt>, <tt>listchan</tt>, <tt>listuser</tt> and <tt>version</tt>.
-These commands are sent through the standard tetrinet port 31457 (TCP) and must be
+These commands are sent through the standard tetrinet port 31457 and must be
 terminated by the <tt>0xFF</tt> character. The line terminator for the response
 is a line feed <tt>0x0A</tt>.<br />
 
@@ -97,7 +97,7 @@ Returns the list of available channels on the server. The output format is :
 
 <div class="code">"&lt;name&gt;" "&lt;description&gt;" &lt;playernum&gt; &lt;playermax&gt; &lt;priority&gt; &lt;status&gt;</div>
 <pre>
-name         the name of the channel (without the leading #)
+name         the name of the channel
 description  the description or topic of the channel
 playernum    the number of players in this channel
 playermax    the maximum number of players
@@ -135,17 +135,13 @@ Returns the version of the server. The response is terminated by the string "<tt
 <h2><a id="section3-1"></a>Commands</h2>
 
 Jetrix has been designed to allow the addition of new commands like <tt>/who</tt>
-or <tt>/list</tt> easily. This section will show you the steps to follow in 
-order to create a simple <tt>/hello</tt> command that will just display the 
-message <tt>"Hello World!"</tt>.
+or <tt>/list</tt> easily. This document will show you the steps to create a simple
+command <tt>/hello</tt> that will just display the message <tt>"Hello World!"</tt>.
 
 <h3>Write the command</h3>
 
-Every command is represented by a Java class implementing the 
-<a class="api" href="/api/net/jetrix/commands/Command.html">Command</a> 
-interface. Let's create our class, <tt>HelloCommand</tt>, it'll be based on the 
-<a class="api" href="/api/net/jetrix/commands/AbstractCommand.html">AbstractCommand</a> 
-class implementing part of the <tt>Command</tt> interface methods :
+Every command is represented by a Java class implementing the net.jetrix.commands.Command interface.
+Let's create our class, HelloCommand :
 
 <div class="code">
 <span class="blue">import</span> java.util.*;
@@ -153,7 +149,7 @@ class implementing part of the <tt>Command</tt> interface methods :
 <span class="blue">import</span> net.jetrix.messages.*;
 <span class="blue">import</span> net.jetrix.commands.*;
 
-<span class="blue">public class</span> HelloCommand <span class="blue">extends</span> <span class="red">AbstractCommand</span>
+<span class="blue">public class</span> HelloCommand <span class="blue">implements</span> <span class="red">Command</span>
 {
 
 }
@@ -202,17 +198,13 @@ listing, it returns a short description of the command :
 </div>
 
 The <tt>getAccessLevel()</tt> defines the minimal access level required to use
-the command. To allow everyone to use the command it should return 
-<tt>AccessLevel.PLAYER</tt>, to restrict it to operators only it would return 
-<tt>AccessLevel.OPERATOR</tt>. The <tt>AbstractCommand</tt> class provides a
-default implementation for this method returning the player access level, so
-you don't have to worry about it. But I you want your command to be used only
-by an operator, change the access level in the constructor :
+the command. To allow everyone to use the command it should return 0, to restrict
+it to operators only it would return 1.
 
 <div class="code">
-    <span class="blue">public </span> HelloCommand()
+    <span class="blue">public int</span> getAccessLevel()
     {
-        setAccessLevel(<span class="red">AccessLevel</span>.OPERATOR);
+        <span class="blue">return</span> <span class="red">0</span>;
     }
 
 </div>
@@ -241,7 +233,7 @@ Our command is complete, let's put all the pieces together :
 <span class="blue">import</span> net.jetrix.messages.*;
 <span class="blue">import</span> net.jetrix.commands.*;
 
-<span class="blue">public class</span> HelloCommand <span class="blue">extends</span> <span class="red">AbstractCommand</span>
+<span class="blue">public class</span> HelloCommand <span class="blue">implements</span> <span class="red">Command</span>
 {
     <span class="blue">public</span> <span class="red">String</span>[] getAliases()
     {
@@ -256,6 +248,11 @@ Our command is complete, let's put all the pieces together :
     <span class="blue">public</span> <span class="red">String</span> getDescription(<span class="red">Locale</span> locale)
     {
         <span class="blue">return</span> <span class="gray">"Display 'Hello World!'"</span>;
+    }
+
+    <span class="blue">public int</span> getAccessLevel()
+    {
+        <span class="blue">return</span> <span class="red">0</span>;
     }
 
     <span class="blue">public void</span> execute(<span class="red">CommandMessage</span> message)
@@ -274,7 +271,7 @@ Save the code above in a <tt>HelloCommand.java</tt> file and copy the <tt>jetrix
 file in the same directory (this jar is in the <tt>jetrix/lib</tt> directory of
 the jetrix distribution). Then compile the command with :
 
-<div class="code">javac -classpath jetrix.jar HelloCommand.java</div>
+<div class="code">javac -cp jetrix.jar HelloCommand.java</div>
 
 <h3>Deploy the command</h3>
 
@@ -322,12 +319,10 @@ In this mod the first player to complete 7 tetris win.</p>
 
 <h3>Write the filter</h3>
 
-<p>Filters extend the base class <a class="api" href="/api/net/jetrix/filter/MessageFilter.html">MessageFilter</a>, 
-this class defines a <tt>process(Message m, List out)</tt> method that must be 
-overridden to implement the behaviour of the filter. A higher level filter 
-<a class="api" href="/api/net/jetrix/filter/GenericFilter.html">GenericFilter</a> 
-with process methods for all message types is provided, we will use it for our 
-filter.</p>
+<p>Filters extend the base class <tt>MessageFilter</tt>, this class defines a
+<tt>process(Message m, List out)</tt> method that must be overridden to implement
+the behaviour of the filter. A higher level filter <tt>GenericFilter</tt> with
+process methods for all message types is provided, we will use it for our filter.</p>
 
 <p>Let's create our class :</p>
 
@@ -410,7 +405,7 @@ has been reached. If so the game is stopped and the winner is announced.</p>
 directory of the jetrix distribution). Then compile the command with :</p>
 
 <div class="code">
-javac -classpath jetrix.jar TetrisFilter.java
+javac -cp jetrix.jar TetrisFilter.java
 
 </div>
 

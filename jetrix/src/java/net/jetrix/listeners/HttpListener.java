@@ -26,7 +26,6 @@ import org.mortbay.http.*;
 import org.mortbay.util.*;
 
 import net.jetrix.*;
-import net.jetrix.services.AbstractService;
 
 /**
  * Web administration console.
@@ -34,12 +33,11 @@ import net.jetrix.services.AbstractService;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class HttpListener extends AbstractService implements Listener
+public class HttpListener implements Listener
 {
     private org.mortbay.jetty.Server jetty;
-    private Logger log = Logger.getLogger("net.jetrix");
+    private Logger logger = Logger.getLogger("net.jetrix");
     private boolean initialized;
-    private int port = 8080;
 
     public HttpListener()
     {
@@ -53,8 +51,8 @@ public class HttpListener extends AbstractService implements Listener
     {
         // authentication realm
         HashUserRealm realm = new HashUserRealm("Jetrix Admin");
-        realm.put("admin", Server.getInstance().getConfig().getAdminPassword());
-        realm.addUserToRole("admin", "admin");
+        realm.put("operator", Server.getInstance().getConfig().getOpPassword());
+        realm.addUserToRole("operator", "operator");
 
         jetty = new org.mortbay.jetty.Server();
         jetty.addRealm(realm);
@@ -77,12 +75,7 @@ public class HttpListener extends AbstractService implements Listener
 
     public int getPort()
     {
-        return port;
-    }
-
-    public void setPort(int port)
-    {
-        this.port = port;
+        return 8080;
     }
 
     public void start()
@@ -95,11 +88,11 @@ public class HttpListener extends AbstractService implements Listener
                 initialized = true;
             }
             jetty.start();
-            log.info("Web administration console started on port " + getPort());
+            logger.info("Web administration console started on port " + getPort());
         }
         catch (MultiException e)
         {
-            log.log(Level.SEVERE, "Unable to start the Web administration console on port " + getPort(), e);
+            logger.log(Level.SEVERE, "Unable to start the Web administration console on port " + getPort(), e);
         }
     }
 
@@ -108,7 +101,7 @@ public class HttpListener extends AbstractService implements Listener
         try
         {
             jetty.stop();
-            log.info("Web administration console stopped");
+            logger.info("Web administration console stopped");
         }
         catch (InterruptedException e)
         {
@@ -118,8 +111,4 @@ public class HttpListener extends AbstractService implements Listener
 
     public void run() { }
 
-    public boolean isRunning()
-    {
-        return jetty.isStarted();
-    }
 }

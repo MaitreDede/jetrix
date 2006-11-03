@@ -1,9 +1,9 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE web-app PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN" "http://java.sun.com/dtd/web-app_2_3.dtd">
 <web-app>
 
-    <display-name>Jetrix Administration</display-name>
-    <description>Web administration console for Jetrix</description>
+    <display-name>JetriX Admin</display-name>
+    <description>Web administration console for JetriX</description>
 
     <filter>
          <filter-name>precomp</filter-name>
@@ -23,7 +23,7 @@
             <url-pattern>*.jsp</url-pattern>
         </web-resource-collection>
         <auth-constraint>
-            <role-name>admin</role-name>
+            <role-name>operator</role-name>
         </auth-constraint>
     </security-constraint>
 

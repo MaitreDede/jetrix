@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,18 +30,35 @@ import net.jetrix.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class SpecListCommand extends AbstractCommand
+public class SpecListCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
         return new String[] { "speclist", "slist" };
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
+    }
+
+    public String getUsage(Locale locale)
+    {
+        return "/speclist";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.speclist.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
         Client client = (Client) m.getSource();
 
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         Iterator specators = client.getChannel().getSpectators();
         while (specators.hasNext())
         {
@@ -54,7 +71,7 @@ public class SpecListCommand extends AbstractCommand
         }
 
         PlineMessage response = new PlineMessage();
-        response.setKey("command.speclist.format", message.toString());
-        client.send(response);
+        response.setKey("command.speclist.format", new Object[] { message.toString() });
+        client.sendMessage(response);
     }
 }

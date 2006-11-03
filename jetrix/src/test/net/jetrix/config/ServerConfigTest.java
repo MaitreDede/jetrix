@@ -20,7 +20,6 @@
 package  net.jetrix.config;
 
 import junit.framework.*;
-import net.jetrix.ChannelManager;
 
 /**
  * JUnit TestCase for the class net.jetrix.config.ServerConfig
@@ -30,38 +29,17 @@ import net.jetrix.ChannelManager;
  */
 public class ServerConfigTest extends TestCase
 {
-    public void testGetInstance()
+    public static void testGetInstance()
     {
         try
         {
-            ServerConfig config = new ServerConfig();
-            config.load();
+            ServerConfig conf = new ServerConfig();
+            conf.load();
         }
         catch (Throwable e)
         {
             fail(e.getMessage());
         }
-    }
-
-    public void testSave() throws Exception
-    {
-        // load...
-        ServerConfig config = new ServerConfig();
-        config.load();
-
-        // create the channels
-        for (ChannelConfig cc : config.getChannels())
-        {
-            cc.setPersistent(true);
-            ChannelManager.getInstance().createChannel(cc, false);
-        }
-
-        // save...
-        config.save();
-
-        // and load again !
-        ServerConfig config2 = new ServerConfig();
-        config2.load();
     }
 
 }

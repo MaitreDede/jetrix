@@ -12,9 +12,9 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
   <script type="text/javascript" src="javascript/tabpane/js/tabpane.js"></script>
-  <link type="text/css" rel="stylesheet" href="javascript/tabpane/css/luna/tab.css">
+  <link type="text/css" rel="stylesheet" href="javascript/tabpane/css/luna/tab.css" />
   <link type="text/css" rel="stylesheet" href="style.css">
-  <title>Jetrix Administration - User - <%= user.getName() %></title>
+  <title>JetriX Admin - User - <%= user.getName() %></title>
 </head>
 <body>
 
@@ -64,21 +64,12 @@
         <td><%= client.getInetAddress().getHostName() %></td>
       </tr>
     </table>
-
+    
     <br>
-
-    <form id="kick" action="/servlet/net.jetrix.servlets.UserAction" style="display: inline">
-      <input type="hidden" name="action" value="kick">
-      <input type="hidden" name="name" value="<%= user.getName() %>">
-      <input type="submit" value="Kick">
-    </form>
-
-    <form id="ban" action="/servlet/net.jetrix.servlets.UserAction" style="display: inline">
-      <input type="hidden" name="action" value="ban">
-      <input type="hidden" name="name" value="<%= user.getName() %>">
-      <input type="submit" value="Ban">
-    </form>
-
+    
+    <input type="button" value="Kick">
+    <input type="button" value="Ban">
+  
   </div>
   <div class="tab-page" style="height: 400px">
     <h2 class="tab">Statistics</h2>
@@ -89,15 +80,11 @@
         <td><%= client.getConnectionTime() %></td>
       </tr>
       <tr>
-        <td>Idle Time</td>
-        <td><%= client.getIdleTime() / 1000 %> second<%= client.getIdleTime() > 2000 ? "s" : "" %></td>
-      </tr>
-      <tr>
         <td>Games Played</td>
         <td>1234</td>
       </tr>
     </table>
-
+  
   </div>
 </div>
 

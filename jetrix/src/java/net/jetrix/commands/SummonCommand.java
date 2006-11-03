@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,16 +29,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class SummonCommand extends AbstractCommand implements ParameterCommand
+public class SummonCommand implements Command
 {
-    public SummonCommand()
+    private int accessLevel = 1;
+
+    public String[] getAliases()
     {
-        setAccessLevel(AccessLevel.OPERATOR);
+        return (new String[] { "summon" });
     }
 
-    public String getAlias()
+    public int getAccessLevel()
     {
-        return "summon";
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -46,63 +48,77 @@ public class SummonCommand extends AbstractCommand implements ParameterCommand
         return "/summon <" + Language.getText("command.params.player_name", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 1;
+        return Language.getText("command.summon.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
-        String targetName = m.getParameter(0);
-
-        ClientRepository repository = ClientRepository.getInstance();
-        Client target = repository.getClient(targetName);
-
-        if (target == null)
+        if (m.getParameterCount() >= 1)
         {
-            // no player found
-            client.send(new PlineMessage("command.player_not_found", targetName));
-        }
-        else
-        {
-            // player found
-            Channel channel = client.getChannel();
+            String targetName = m.getParameter(0);
 
-            if (target == client)
+            ClientRepository repository = ClientRepository.getInstance();
+            Client target = repository.getClient(targetName);
+
+            if (target == null)
             {
-                PlineMessage cantsummon = new PlineMessage();
-                cantsummon.setKey("command.summon.yourself");
-                client.send(cantsummon);
-            }
-            else if (channel == target.getChannel())
-            {
-                PlineMessage cantsummon = new PlineMessage();
-                cantsummon.setKey("command.summon.same_channel", target.getUser().getName());
-                client.send(cantsummon);
-            }
-            else if (channel.isFull())
-            {
-                // sending channel full message
-                PlineMessage channelfull = new PlineMessage();
-                channelfull.setKey("command.summon.full");
-                client.send(channelfull);
+                // no player found
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.player_not_found", new Object[] { targetName });
+                client.sendMessage(response);
             }
             else
             {
-                // adding the ADDPLAYER message to the queue of the target channel
-                AddPlayerMessage move = new AddPlayerMessage(target);
-                channel.send(move);
+                // player found
+                Channel channel = client.getChannel();
 
-                PlineMessage summoned1 = new PlineMessage();
-                summoned1.setKey("command.summon.summoned", target.getUser().getName());
-                client.send(summoned1);
+                if (target == client)
+                {
+                    PlineMessage cantsummon = new PlineMessage();
+                    cantsummon.setKey("command.summon.yourself");
+                    client.sendMessage(cantsummon);
+                }
+                else if (channel == target.getChannel())
+                {
+                    PlineMessage cantsummon = new PlineMessage();
+                    cantsummon.setKey("command.summon.same_channel", new Object[] { target.getUser().getName() });
+                    client.sendMessage(cantsummon);
+                }
+                else if (channel.isFull())
+                {
+                    // sending channel full message
+                    PlineMessage channelfull = new PlineMessage();
+                    channelfull.setKey("command.summon.full");
+                    client.sendMessage(channelfull);
+                }
+                else
+                {
+                    // adding the ADDPLAYER message to the queue of the target channel
+                    AddPlayerMessage move = new AddPlayerMessage(target);
+                    channel.sendMessage(move);
 
-                PlineMessage summoned2 = new PlineMessage();
-                summoned2.setKey("command.summon.summoned_by", client.getUser().getName());
-                target.send(summoned2);
+                    PlineMessage summoned1 = new PlineMessage();
+                    summoned1.setKey("command.summon.summoned", new Object[] { target.getUser().getName() });
+                    client.sendMessage(summoned1);
+
+                    PlineMessage summoned2 = new PlineMessage();
+                    summoned2.setKey("command.summon.summoned_by", new Object[] { client.getUser().getName() });
+                    target.sendMessage(summoned2);
+                }
             }
+        }
+        else
+        {
+            // not enough parameters
+            Locale locale = client.getUser().getLocale();
+            PlineMessage response = new PlineMessage();
+            String message = "<red>" + m.getCommand() + "<blue> <" + Language.getText("command.params.player_name", locale) + ">";
+            response.setText(message);
+            client.sendMessage(response);
         }
     }
 }

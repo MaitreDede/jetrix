@@ -4,8 +4,6 @@ a:hover { color: #2B313D }
 
 a img { border-width: 0 }
 
-form { margin: 0 }
-
 .menu { margin-left: 0.5em; }
 .menu h1 { font-size: 12pt; font-weight: bold; margin-bottom: 0.2em }
 .menu ul { padding-left: 0.5em; margin-top: 0; margin-left: 0; }
@@ -26,12 +24,8 @@ code { margin: 1em 2em; border: 1px solid #c0c0c0; background-color: #f0f0f0; }
 
 input.thin, textarea.thin { border: 1px solid #c0c0c0; }
 
-table.thin { background-color: #c0c0c0; border-spacing: 1px }
-table.thin tbody { background-color: white }
+table.thin { border-collapse: collapse; border-top: 1px solid #c0c0c0; border-left: 1px solid #c0c0c0; }
+table.thin th { border-bottom: 1px solid #c0c0c0; border-right: 1px solid #c0c0c0; }
+table.thin td { border-bottom: 1px solid #c0c0c0; border-right: 1px solid #c0c0c0; }
 
 div.hr { width: 100%; border-top: 1px solid gray }
-
-.default { color: gray; }
-.default:focus { color: black; }
-
-.icon-link { background-repeat: no-repeat; line-height: 16px; padding-left: 17px; text-decoration: none; font-size: small }

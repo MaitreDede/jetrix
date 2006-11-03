@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,21 +31,39 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class TimeCommand extends AbstractCommand
+public class TimeCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
         return (new String[] { "time", "date" });
     }
 
+    public int getAccessLevel()
+    {
+        return accessLevel;
+    }
+
+    public String getUsage(Locale locale)
+    {
+        return "/time";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.time.description", locale);
+    }
+
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
         Locale locale = client.getUser().getLocale();
+        ServerConfig conf = Server.getInstance().getConfig();
         DateFormat df = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, locale);
 
         PlineMessage response = new PlineMessage();
-        response.setKey("command.time.message", df.format(new Date()), TimeZone.getDefault().getDisplayName(locale));
-        client.send(response);
+        response.setKey("command.time.message", new Object[] { df.format(new Date()), TimeZone.getDefault().getDisplayName(locale) });
+        client.sendMessage(response);
     }
 }

@@ -20,8 +20,6 @@
 package net.jetrix;
 
 import java.util.*;
-import java.io.Reader;
-import java.io.IOException;
 
 /**
  * A protocol to communicate with a client. A protocol is responsible for
@@ -39,7 +37,7 @@ public interface Protocol
      *
      * @return the name of this protocol
      */
-    String getName();
+    public String getName();
 
     /**
      * Parse the specified string and return the corresponding server
@@ -50,7 +48,7 @@ public interface Protocol
      * @return the {@link net.jetrix.Message} equivalent of the specified
      *     String or null if the protocol cannot understand the message.
      */
-    Message getMessage(String message);
+    public Message getMessage(String message);
 
     /**
      * Translate the specified message into a string that will be sent
@@ -62,7 +60,7 @@ public interface Protocol
      * @return the String equivalent in this protocol for the specified
      *     {@link net.jetrix.Message} or null if it can't be translated.
      */
-    String translate(Message m, Locale locale);
+    public String translate(Message m, Locale locale);
 
     /**
      * Transform the style tags (<tt>&lt;blue&gt;</tt>, <tt>&lt;u&gt;</tt>,
@@ -74,23 +72,6 @@ public interface Protocol
      * @return the stylized representation of the specified string for
      *     this protocol.
      */
-    String applyStyle(String text);
-
-    /**
-     * Return the end of line character used by this protocol.
-     */
-    char getEOL();
-
-    /**
-     * Read a line for this protocol. A line is ended by a \n or \r character,
-     * or by a protocol specific end of line as defined by the {@link #getEOL()}
-     * method.
-     *
-     * @since 0.3
-     *
-     * @param in the stream to be read
-     * @throws IOException thrown if the stream is closed
-     */
-    String readLine(Reader in) throws IOException;
+    public String applyStyle(String text);
 
 }

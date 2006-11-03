@@ -33,29 +33,33 @@ import net.jetrix.messages.*;
 public class CommandManagerTest extends TestCase
 {
     private CommandManager commandManager;
-    private Command command1;
-    private Command command2;
-    private Command command3;
+    private Command cmd1, cmd2, cmd3;
 
     public void setUp()
     {
         commandManager = CommandManager.getInstance();
 
-        command1 = new AbstractCommand() {
+        cmd1 = new Command() {
             public String[] getAliases() { return new String[] { "aaabbbccc" }; }
-            public int getAccessLevel() { return AccessLevel.PLAYER; }
+            public String getUsage(Locale locale) { return null; }
+            public String getDescription(Locale locale) { return null; }
+            public int getAccessLevel() { return 0; }
             public void execute(CommandMessage m) { }
         };
 
-        command2 = new AbstractCommand() {
+        cmd2 = new Command() {
             public String[] getAliases() { return new String[] { "aaabbbddd" }; }
-            public int getAccessLevel() { return AccessLevel.PLAYER; }
+            public String getUsage(Locale locale) { return null; }
+            public String getDescription(Locale locale) { return null; }
+            public int getAccessLevel() { return 0; }
             public void execute(CommandMessage m) { }
         };
 
-        command3 = new AbstractCommand() {
+        cmd3 = new Command() {
             public String[] getAliases() { return new String[] { "aaabbbeee" }; }
-            public int getAccessLevel() { return AccessLevel.OPERATOR; }
+            public String getUsage(Locale locale) { return null; }
+            public String getDescription(Locale locale) { return null; }
+            public int getAccessLevel() { return 1; }
             public void execute(CommandMessage m) { }
         };
 
@@ -68,122 +72,105 @@ public class CommandManagerTest extends TestCase
 
     public void testGetCommand1()
     {
-        commandManager.addCommand(command1);
-        commandManager.addCommand(command2);
-        commandManager.addCommand(command3);
+        commandManager.addCommand(cmd1);
+        commandManager.addCommand(cmd2);
+        commandManager.addCommand(cmd3);
 
         // testing full command name match
-        assertEquals(command1, commandManager.getCommand("aaabbbccc"));
-        assertEquals(command2, commandManager.getCommand("aaabbbddd"));
-        assertEquals(command3, commandManager.getCommand("aaabbbeee"));
+        assertEquals(cmd1, commandManager.getCommand("aaabbbccc"));
+        assertEquals(cmd2, commandManager.getCommand("aaabbbddd"));
+        assertEquals(cmd3, commandManager.getCommand("aaabbbeee"));
         assertEquals(null, commandManager.getCommand("xyz"));
     }
 
     public void testGetCommand2()
     {
-        commandManager.addCommand(command1);
-        commandManager.addCommand(command2);
-        commandManager.addCommand(command3);
+        commandManager.addCommand(cmd1);
+        commandManager.addCommand(cmd2);
+        commandManager.addCommand(cmd3);
 
         // testing unambiguous partial command name match
-        assertEquals(command1, commandManager.getCommand("aaabbbc"));
-        assertEquals(command2, commandManager.getCommand("aaabbbd"));
-        assertEquals(command3, commandManager.getCommand("aaabbbe"));
+        assertEquals(cmd1, commandManager.getCommand("aaabbbc"));
+        assertEquals(cmd2, commandManager.getCommand("aaabbbd"));
+        assertEquals(cmd3, commandManager.getCommand("aaabbbe"));
     }
 
     public void testGetCommand3()
     {
-        commandManager.addCommand(command1);
-        commandManager.addCommand(command2);
-        commandManager.addCommand(command3);
+        commandManager.addCommand(cmd1);
+        commandManager.addCommand(cmd2);
+        commandManager.addCommand(cmd3);
 
         // testing ambiguous partial command name match
-        assertEquals(command1, commandManager.getCommand("aaa"));
-        assertEquals(command1, commandManager.getCommand("aaabbb"));
+        assertEquals(cmd1, commandManager.getCommand("aaa"));
+        assertEquals(cmd1, commandManager.getCommand("aaabbb"));
     }
 
     public void testGetCommand4()
     {
-        commandManager.addCommand(command3);
-        commandManager.addCommand(command2);
-        commandManager.addCommand(command1);
+        commandManager.addCommand(cmd3);
+        commandManager.addCommand(cmd2);
+        commandManager.addCommand(cmd1);
 
         // testing ambiguous partial command name match
-        assertEquals(command1, commandManager.getCommand("aaa"));
-        assertEquals(command1, commandManager.getCommand("aaabbb"));
+        assertEquals(cmd1, commandManager.getCommand("aaa"));
+        assertEquals(cmd1, commandManager.getCommand("aaabbb"));
     }
 
     public void testGetCommand5()
     {
-        commandManager.addCommand(command1);
-        commandManager.addCommand(command2);
-        commandManager.addCommand(command3);
-        commandManager.addCommandAlias(command2, "aaa");
-        commandManager.addCommandAlias(command3, "aaabbb");
+        commandManager.addCommand(cmd1);
+        commandManager.addCommand(cmd2);
+        commandManager.addCommand(cmd3);
+        commandManager.addCommandAlias(cmd2, "aaa");
+        commandManager.addCommandAlias(cmd3, "aaabbb");
 
-        assertEquals(command2, commandManager.getCommand("aaa"));
-        assertEquals(command3, commandManager.getCommand("aaabbb"));
+        assertEquals(cmd2, commandManager.getCommand("aaa"));
+        assertEquals(cmd3, commandManager.getCommand("aaabbb"));
     }
 
     public void testGetCommand6()
     {
-        commandManager.addCommand(command1);
-        commandManager.addCommand(command2);
-        commandManager.addCommand(command3);
+        commandManager.addCommand(cmd1);
+        commandManager.addCommand(cmd2);
+        commandManager.addCommand(cmd3);
 
         // is getCommand case insensitive ?
-        assertEquals("Error getCommand is case sensitive", command1, commandManager.getCommand("aAaBbBcCc"));
-        assertEquals("Error getCommand is case sensitive", command2, commandManager.getCommand("aaaBBBddd"));
-        assertEquals("Error getCommand is case sensitive", command3, commandManager.getCommand("AAAbbbEEE"));
-        assertEquals("Error getCommand is case sensitive", command1, commandManager.getCommand("AAA"));
+        assertEquals("Error getCommand is case sensitive", cmd1, commandManager.getCommand("aAaBbBcCc"));
+        assertEquals("Error getCommand is case sensitive", cmd2, commandManager.getCommand("aaaBBBddd"));
+        assertEquals("Error getCommand is case sensitive", cmd3, commandManager.getCommand("AAAbbbEEE"));
+        assertEquals("Error getCommand is case sensitive", cmd1, commandManager.getCommand("AAA"));
     }
 
     public void testAddCommandAlias()
     {
-        commandManager.addCommand(command1);
-        commandManager.addCommandAlias(command1, "xyz");
+        commandManager.addCommand(cmd1);
+        commandManager.addCommandAlias(cmd1, "xyz");
 
-        assertEquals(command1, commandManager.getCommand("xyz"));
+        assertEquals(cmd1, commandManager.getCommand("xyz"));
     }
 
     public void testGetCommands1()
     {
-        commandManager.addCommand(command3);
-        commandManager.addCommand(command2);
-        commandManager.addCommand(command1);
+        commandManager.addCommand(cmd3);
+        commandManager.addCommand(cmd2);
+        commandManager.addCommand(cmd1);
 
         Iterator commands = commandManager.getCommands();
-        assertEquals(command1, commands.next());
-        assertEquals(command2, commands.next());
+        assertEquals(cmd1, commands.next());
+        assertEquals(cmd2, commands.next());
     }
 
     public void testGetCommands2()
     {
-        commandManager.addCommand(command3);
-        commandManager.addCommand(command2);
-        commandManager.addCommand(command1);
+        commandManager.addCommand(cmd3);
+        commandManager.addCommand(cmd2);
+        commandManager.addCommand(cmd1);
 
-        Iterator commands = commandManager.getCommands(AccessLevel.OPERATOR);
-        assertEquals(command1, commands.next());
-        assertEquals(command2, commands.next());
-        assertEquals(command3, commands.next());
-    }
-
-    public void testColorizeUsage()
-    {
-        assertEquals("<red>/usage", commandManager.colorizeUsage("/usage"));
-        assertEquals("<red>/usage <blue>param1 param2", commandManager.colorizeUsage("/usage param1 param2"));
-    }
-
-    public void testRemoveCommand()
-    {
-        commandManager.addCommand(new HelpCommand());
-
-        assertNotNull("help command not found", commandManager.getCommand("help"));
-
-        commandManager.removeCommand(new HelpCommand());
-
-        assertNull("help command not removed", commandManager.getCommand("help"));
+        Iterator commands = commandManager.getCommands(1);
+        assertEquals(cmd1, commands.next());
+        assertEquals(cmd2, commands.next());
+        assertEquals(cmd3, commands.next());
     }
 
 }

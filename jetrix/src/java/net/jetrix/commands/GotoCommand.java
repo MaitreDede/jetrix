@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,11 +32,18 @@ import java.util.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class GotoCommand extends AbstractCommand implements ParameterCommand
+public class GotoCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
         return (new String[] { "goto", "go" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -44,72 +51,84 @@ public class GotoCommand extends AbstractCommand implements ParameterCommand
         return "/goto <" + Language.getText("command.params.player_name", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 1;
+        return Language.getText("command.goto.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
-        String targetName = m.getParameter(0);
-
-        ClientRepository repository = ClientRepository.getInstance();
-        Client target = repository.getClient(targetName);
-
-        if (target == null)
+        if (m.getParameterCount() >= 1)
         {
-            // no player found
-            PlineMessage response = new PlineMessage();
-            response.setKey("command.player_not_found", targetName);
-            client.send(response);
-        }
-        else
-        {
-            // player found
-            Channel channel = target.getChannel();
-            ChannelConfig channelConfig = channel.getConfig();
+            String targetName = m.getParameter(0);
 
-            if (target == client)
+            ClientRepository repository = ClientRepository.getInstance();
+            Client target = repository.getClient(targetName);
+
+            if (target == null)
             {
-                PlineMessage cantgoto = new PlineMessage();
-                cantgoto.setKey("command.goto.yourself");
-                client.send(cantgoto);
-            }
-            else if (channel == client.getChannel())
-            {
-                PlineMessage cantgoto = new PlineMessage();
-                cantgoto.setKey("command.goto.same_channel", target.getUser().getName());
-                client.send(cantgoto);
-            }
-            else if (channel.isFull())
-            {
-                // send a channel full message
-                PlineMessage channelfull = new PlineMessage();
-                channelfull.setKey("command.join.full");
-                client.send(channelfull);
-            }
-            else if (client.getUser().getAccessLevel() < channelConfig.getAccessLevel())
-            {
-                // check the access level
-                PlineMessage accessDenied = new PlineMessage();
-                accessDenied.setKey("command.join.denied");
-                client.send(accessDenied);
-            }
-            else if (channelConfig.isPasswordProtected())
-            {
-                // check if the channel is password protected
-                PlineMessage accessDenied = new PlineMessage();
-                accessDenied.setKey("command.goto.password");
-                client.send(accessDenied);
+                // no player found
+                PlineMessage response = new PlineMessage();
+                response.setKey("command.player_not_found", new Object[] { targetName });
+                client.sendMessage(response);
             }
             else
             {
-                // add the ADDPLAYER message to the queue of the target channel
-                AddPlayerMessage move = new AddPlayerMessage(client);
-                channel.send(move);
+                // player found
+                Channel channel = target.getChannel();
+                ChannelConfig channelConfig = channel.getConfig();
+
+                if (target == client)
+                {
+                    PlineMessage cantgoto = new PlineMessage();
+                    cantgoto.setKey("command.goto.yourself");
+                    client.sendMessage(cantgoto);
+                }
+                else if (channel == client.getChannel())
+                {
+                    PlineMessage cantgoto = new PlineMessage();
+                    cantgoto.setKey("command.goto.same_channel", new Object[] { target.getUser().getName() });
+                    client.sendMessage(cantgoto);
+                }
+                else if (channel.isFull())
+                {
+                    // send a channel full message
+                    PlineMessage channelfull = new PlineMessage();
+                    channelfull.setKey("command.join.full");
+                    client.sendMessage(channelfull);
+                }
+                else if (client.getUser().getAccessLevel() < channelConfig.getAccessLevel())
+                {
+                    // check the access level
+                    PlineMessage accessDenied = new PlineMessage();
+                    accessDenied.setKey("command.join.denied");
+                    client.sendMessage(accessDenied);
+                }
+                else if (channelConfig.isPasswordProtected())
+                {
+                    // check if the channel is password protected
+                    PlineMessage accessDenied = new PlineMessage();
+                    accessDenied.setKey("command.goto.password");
+                    client.sendMessage(accessDenied);
+                }
+                else
+                {
+                    // add the ADDPLAYER message to the queue of the target channel
+                    AddPlayerMessage move = new AddPlayerMessage(client);
+                    channel.sendMessage(move);
+                }
             }
+        }
+        else
+        {
+            // not enough parameters
+            Locale locale = client.getUser().getLocale();
+            PlineMessage response = new PlineMessage();
+            String message = "<red>" + m.getCommand() + "<blue> <" + Language.getText("command.params.player_name", locale) + ">";
+            response.setText(message);
+            client.sendMessage(response);
         }
     }
 }

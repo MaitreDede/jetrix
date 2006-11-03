@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,9 +20,6 @@
 package net.jetrix.winlist;
 
 import java.util.*;
-import java.util.logging.*;
-
-import net.jetrix.config.*;
 
 /**
  * Winlist manager.
@@ -33,13 +30,11 @@ import net.jetrix.config.*;
 public class WinlistManager
 {
     private static WinlistManager instance = new WinlistManager();
-    private Map<String,Winlist> winlists;
-
-    private Logger log = Logger.getLogger("net.jetrix");
+    private Map winlists;
 
     private WinlistManager()
     {
-        winlists = new TreeMap<String, Winlist>();
+        winlists = new TreeMap();
     }
 
     public static WinlistManager getInstance()
@@ -47,59 +42,16 @@ public class WinlistManager
         return instance;
     }
 
-    /**
-     * Register a new winlist.
-     */
-    protected void addWinlist(Winlist winlist)
+    public void addWinlist(Winlist winlist)
     {
         if (winlist != null && winlist.getId() != null)
         {
             winlists.put(winlist.getId(), winlist);
-            if (log.isLoggable(Level.FINE))
-            {
-                log.fine("registered winlist " + winlist.getId());
-            }
         }
     }
 
-    /**
-     * Declare a new winlist.
-     */
-    public void addWinlist(WinlistConfig config)
-    {
-        if (config != null && config.getName() != null && config.getClassname() != null)
-        {
-            try
-            {
-                Class cls = Class.forName(config.getClassname());
-                Winlist winlist = (Winlist) cls.newInstance();
-                winlist.setId(config.getName());
-                winlist.init(config);
-
-                addWinlist(winlist);
-            }
-            catch (Exception e)
-            {
-                log.log(Level.WARNING, e.getMessage(), e);
-            }
-        }
-    }
-
-    /**
-     * Return the winlist with the specified id.
-     */
     public Winlist getWinlist(String id)
     {
-        return (id == null) ? null : winlists.get(id);
-    }
-
-    /**
-     * Return the registered winlists
-     *
-     * @since 0.2
-     */
-    public Collection<Winlist> getWinlists()
-    {
-        return winlists.values();
+        return (id == null) ? null : (Winlist) winlists.get(id);
     }
 }

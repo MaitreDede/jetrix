@@ -93,7 +93,7 @@ public class ClientRepositoryTest extends TestCase
         addClients();
 
         // looking for players
-        StringBuilder playerList = new StringBuilder();
+        StringBuffer playerList = new StringBuffer();
         Iterator players = repository.getPlayers();
         while (players.hasNext())
         {
@@ -103,7 +103,7 @@ public class ClientRepositoryTest extends TestCase
         }
 
         // looking for spectators
-        StringBuilder spectatorList = new StringBuilder();
+        StringBuffer spectatorList = new StringBuffer();
         Iterator spectators = repository.getSpectators();
         while (spectators.hasNext())
         {
@@ -176,7 +176,7 @@ public class ClientRepositoryTest extends TestCase
     public void testConcurrentModification()
     {
         repository.addClient(client1);
-        Iterator clients = repository.getClients().iterator();
+        Iterator clients = repository.getClients();
         repository.addClient(client2);
         
         try 

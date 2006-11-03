@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2003-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,41 +21,19 @@ package net.jetrix.winlist;
 
 import java.util.*;
 
-import net.jetrix.config.*;
+import net.jetrix.winlist.*;
 
 /**
  * A winlist ranking players and teams.
- *
- * @since 0.1.2
  *
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
 public interface Winlist
 {
-    /**
-     * Return the id for this winlist.
-     */
-    String getId();
+    public String getId();
 
-    /**
-     * Set the id for this winlist.
-     */
-    void setId(String id);
-
-    /**
-     * Initialize the winlist.
-     *
-     * @param config the winlist configuration
-     */
-    void init(WinlistConfig config);
-
-    /**
-     * Return the configuration necessary to create the same winlist
-     *
-     * @since 0.2
-     */
-    WinlistConfig getConfig();
+    public void setId(String id);
 
     /**
      * Return the score of the specified player or team
@@ -63,7 +41,7 @@ public interface Winlist
      * @param name the name of the player or team
      * @param type the score type (0: player, 1: team)
      */
-    Score getScore(String name, int type);
+    public WinlistScore getScore(String name, int type);
 
     /**
      * Return the score list in the specified range.
@@ -71,25 +49,11 @@ public interface Winlist
      * @param offset the beginning of the range
      * @param length the length of the range
      */
-    List<Score> getScores(long offset, long length);
+    public List getScores(long offset, long length);
 
     /**
      * Update the winlist with the specified game result.
      */
-    void saveGameResult(GameResult result);
-
-    /**
-     * Remove all entries in the winlist
-     *
-     * @since 0.2
-     */
-    void clear();
-
-    /**
-     * Return the number of entries in the winlist
-     *
-     * @since 0.2
-     */
-    int size();
+    public void saveGameResult(GameResult result);
 
 }

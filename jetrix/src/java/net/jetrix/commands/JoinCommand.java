@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,99 +32,115 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class JoinCommand extends AbstractCommand implements ParameterCommand
+public class JoinCommand implements Command
 {
+    private int accessLevel = 0;
+    private Logger logger = Logger.getLogger("net.jetrix");
+
     public String[] getAliases()
     {
-        return (new String[]{"join", "j"});
+        return (new String[] { "join", "j" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
     {
         return "/join <" + Language.getText("command.params.channel_name_num", locale) + ">"
-                + " <" + Language.getText("command.params.password", locale) + ">";
+               + " <" + Language.getText("command.params.password", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 1;
+        return Language.getText("command.join.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
-        Channel channel = m.getChannelParameter(0);
-
-        // get the password
-        String password = null;
-        if (m.getParameterCount() >= 2)
+        if (m.getParameterCount() >= 1)
         {
-            password = m.getParameter(1);
+            Channel target = getChannelByName(m.getParameter(0));
+
+            // get the password
+            String password = null;
+            if (m.getParameterCount() >= 2)
+            {
+                password = m.getParameter(1);
+            }
+
+            if (target != null)
+            {
+                ChannelConfig channelConfig = target.getConfig(); // NPE
+
+                if (client.getUser().getAccessLevel() < channelConfig.getAccessLevel())
+                {
+                    // deny access
+                    PlineMessage accessDenied = new PlineMessage();
+                    accessDenied.setKey("command.join.denied");
+                    client.sendMessage(accessDenied);
+                }
+                else if (channelConfig.isPasswordProtected() && !channelConfig.getPassword().equals(password))
+                {
+                    // wrong password
+                    logger.severe(client.getUser().getName() + "(" + client.getInetAddress() + ") "
+                                  + "attempted to join the protected channel '"  + channelConfig.getName() + "'.");
+                    PlineMessage accessDenied = new PlineMessage();
+                    accessDenied.setKey("command.join.wrong_password");
+                    client.sendMessage(accessDenied);
+                }
+                else if (target.isFull() && client.getUser().isPlayer())
+                {
+                    // sending channel full message
+                    PlineMessage channelfull = new PlineMessage();
+                    channelfull.setKey("command.join.full");
+                    client.sendMessage(channelfull);
+                }
+                else
+                {
+                    // adding the ADDPLAYER message to the queue of the target channel
+                    AddPlayerMessage move = new AddPlayerMessage();
+                    move.setClient((Client)m.getSource());
+                    target.sendMessage(move);
+                }
+            }
         }
-
-        // the specified channel was found ?
-        if (channel == null)
+        else
         {
-            // no, let's create it if the message comes from an operator
-            if (client.getUser().getAccessLevel() >= AccessLevel.OPERATOR)
-            {
-                // create the channel
-                ChannelConfig config = new ChannelConfig();
-                config.setSettings(new Settings());
-                config.setName(m.getParameter(0).replaceFirst("#", "")); // todo reject empty names
-                config.setDescription("");
-                channel = ChannelManager.getInstance().createChannel(config);
-
-                PlineMessage response = new PlineMessage();
-                response.setKey("command.join.created", m.getParameter(0));
-                client.send(response);
-            }
-            else
-            {
-                // unknown channel
-                PlineMessage response = new PlineMessage();
-                response.setKey("command.join.unknown", m.getParameter(0));
-                client.send(response);
-            }
-
-        }
-
-        if (channel != null)
-        {
-            ChannelConfig channelConfig = channel.getConfig(); // NPE
-
-            if (client.getUser().getAccessLevel() < channelConfig.getAccessLevel())
-            {
-                // deny access
-                PlineMessage accessDenied = new PlineMessage();
-                accessDenied.setKey("command.join.denied");
-                client.send(accessDenied);
-            }
-            else if (channelConfig.isPasswordProtected() && !channelConfig.getPassword().equals(password))
-            {
-                // wrong password
-                log.severe(client.getUser().getName() + "(" + client.getInetAddress() + ") "
-                        + "attempted to join the protected channel '" + channelConfig.getName() + "'.");
-                PlineMessage accessDenied = new PlineMessage();
-                accessDenied.setKey("command.join.wrong_password");
-                client.send(accessDenied);
-            }
-            else if (channel.isFull() && client.getUser().isPlayer())
-            {
-                // sending channel full message
-                PlineMessage channelfull = new PlineMessage();
-                channelfull.setKey("command.join.full");
-                client.send(channelfull);
-            }
-            else
-            {
-                // adding the ADDPLAYER message to the queue of the target channel
-                AddPlayerMessage move = new AddPlayerMessage();
-                move.setClient((Client) m.getSource());
-                channel.send(move);
-            }
+            // not enough parameters
+            Locale locale = client.getUser().getLocale();
+            String message = "<red>" + m.getCommand() + "<blue> <" + Language.getText("command.params.channel_name_num", locale) + ">"
+                + " <" + Language.getText("command.params.password", locale) + ">";
+            PlineMessage response = new PlineMessage(message);
+            client.sendMessage(response);
         }
     }
+
+    /**
+     * Return the channel associated to the specified name or number
+     * as a String ("1", "2", etc).
+     */
+    protected static Channel getChannelByName(String name)
+    {
+        Channel channel = null;
+
+        try
+        {
+            // trying to parse the number
+            int num = Integer.parseInt(name) - 1;
+            channel = ChannelManager.getInstance().getChannel(num);
+        }
+        catch (NumberFormatException e)
+        {
+            channel = ChannelManager.getInstance().getChannel(name);;
+        }
+
+        return channel;
+    }
+
 
 }

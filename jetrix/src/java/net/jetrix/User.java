@@ -37,8 +37,7 @@ public class User
     private boolean playing;
     private int type;
     private Locale locale;
-    private Map<String, Object> props;
-    private Set<String> ignoredUsers;
+    private Map props;
 
     public static final int STATUS_OK  = 0;
     public static final int STATUS_AFK = 1;
@@ -144,65 +143,13 @@ public class User
     }
 
     /**
-     * Tells if the specified nickname is ignored by this user.
-     *
-     * @param name the name of the user
-     * @return <code></code>
-     * @since 0.2
-     */
-    public boolean ignores(String name)
-    {
-        return ignoredUsers == null ? false : ignoredUsers.contains(name.toLowerCase());
-    }
-
-    /**
-     * Add the specified name to the list of ignored users.
-     *
-     * @param name
-     * @since 0.2
-     */
-    public void ignore(String name)
-    {
-        if (ignoredUsers == null)
-        {
-            ignoredUsers = new TreeSet<String>();
-        }
-
-        ignoredUsers.add(name.toLowerCase());
-    }
-
-    /**
-     * Remove the specified name from the list of ignored users.
-     *
-     * @param name
-     * @since 0.2
-     */
-    public void unignore(String name)
-    {
-        if (ignoredUsers != null)
-        {
-            ignoredUsers.remove(name.toLowerCase());
-        }
-    }
-
-    /**
-     * Return the list of ignored players.
-     *
-     * @since 0.2
-     */
-    public Set<String> getIgnoredUsers()
-    {
-        return ignoredUsers == null ? new TreeSet<String>() : ignoredUsers;
-    }
-
-    /**
      * Set an extended property for this player.
      */
     public void setProperty(String key, Object value)
     {
         if (props == null)
         {
-            props = new HashMap<String, Object>();
+            props = new HashMap();
         }
         props.put(key, value);
     }

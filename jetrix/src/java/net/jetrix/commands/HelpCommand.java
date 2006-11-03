@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,8 +20,8 @@
 package net.jetrix.commands;
 
 import java.util.*;
-
 import net.jetrix.*;
+import net.jetrix.config.*;
 import net.jetrix.messages.*;
 
 /**
@@ -30,54 +30,56 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class HelpCommand extends AbstractCommand
+public class HelpCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
-        return (new String[]{"help", "?", "h"});
+        return (new String[] { "help", "?", "h" });
     }
 
-    public void execute(CommandMessage message)
+    public int getAccessLevel()
     {
-        Client client = (Client) message.getSource();
-        Locale locale = client.getUser().getLocale();
+        return accessLevel;
+    }
 
-        // send the header
+    public String getUsage(Locale locale)
+    {
+        return "/help";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.help.description", locale);
+    }
+
+    public void execute(CommandMessage m)
+    {
+        Client client = (Client)m.getSource();
+        CommandManager commandManager = CommandManager.getInstance();
+
         PlineMessage header = new PlineMessage();
         header.setKey("command.help.header");
-        client.send(header);
+        client.sendMessage(header);
 
-        // iterate through the commands accessible to the user
-        Iterator commands = CommandManager.getInstance().getCommands(client.getUser().getAccessLevel());
+        Iterator commands = commandManager.getCommands(client.getUser().getAccessLevel());
         while (commands.hasNext())
         {
-            Command command = (Command) commands.next();
+            Command command = (Command)commands.next();
 
-            if (command.isHidden())
-            {
-                continue;
-            }
-
-            // parse the usage string, and color and command and the parameters
-            String usage = command.getUsage(locale);
+            PlineMessage ligne1 = new PlineMessage();
+            String usage = command.getUsage(client.getUser().getLocale());
             String line1Body;
             int space = usage.indexOf(" ");
             if (space == -1)
-            {
                 line1Body = "<red>" + usage;
-            }
             else
-            {
                 line1Body = "<red>" + usage.substring(0, space) + "<aqua>" + usage.substring(space);
-            }
-
-            // build the lines
-            PlineMessage line1 = new PlineMessage(line1Body);
-            PlineMessage line2 = new PlineMessage("         " + command.getDescription(locale));
-
-            // send the lines
-            client.send(line1);
-            client.send(line2);
+            ligne1.setText(line1Body);
+            PlineMessage ligne2 = new PlineMessage("         " + command.getDescription(client.getUser().getLocale()));
+            client.sendMessage(ligne1);
+            client.sendMessage(ligne2);
         }
     }
 }

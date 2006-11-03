@@ -25,8 +25,6 @@ import net.jetrix.config.*;
 
 import java.util.*;
 
-import org.apache.commons.lang.StringUtils;
-
 /**
  * Game mod : The first player completing 7 tetris win.
  *
@@ -39,24 +37,24 @@ public class TetrisFilter extends GenericFilter
     private int tetrisLimit = 7;
     private boolean addToAll = false;
 
-    public void init()
-    {       
-        tetrisLimit = config.getInt("limit", tetrisLimit);
-        addToAll = config.getBoolean("addToAll", addToAll);
+    public void init(FilterConfig conf)
+    {
+        try { this.tetrisLimit = Integer.parseInt(conf.getParameter("limit")); } catch (Exception e) {}
+        try { this.addToAll = Boolean.getBoolean(conf.getParameter("addToAll")); } catch (Exception e) {}
     }
 
-    public void onMessage(StartGameMessage m, List<Message> out)
+    public void onMessage(StartGameMessage m, List out)
     {
         Arrays.fill(tetrisCount, 0);
 
         GmsgMessage message = new GmsgMessage();
-        message.setKey("filter.tetris.start_message", tetrisLimit);
+        message.setKey("filter.tetris.start_message", new Object[] { new Integer(tetrisLimit) });
 
         out.add(m);
         out.add(message);
     }
 
-    public void onMessage(FourLinesAddedMessage m, List<Message> out)
+    public void onMessage(FourLinesAddedMessage m, List out)
     {
         int from = m.getFromSlot() - 1;
         tetrisCount[from]++;
@@ -68,12 +66,12 @@ public class TetrisFilter extends GenericFilter
 
         if (tetrisCount[from] >= tetrisLimit)
         {
-            getChannel().send(new EndGameMessage());
+            getChannel().sendMessage(new EndGameMessage());
 
             User winner = getChannel().getPlayer(m.getFromSlot());
             PlineMessage announce = new PlineMessage();
-            announce.setKey("channel.player_won", winner.getName());
-            getChannel().send(announce);
+            announce.setKey("channel.player_won", new Object[] { winner.getName() });
+            getChannel().sendMessage(announce);
         }
         else
         {
@@ -90,7 +88,7 @@ public class TetrisFilter extends GenericFilter
             if (tetrisCount[from] == max)
             {
                 // look for the leaders
-                List<String> leaders = new ArrayList<String>();
+                List leaders = new ArrayList();
                 for (int i = 0; i < 6; i++)
                 {
                     if (tetrisCount[i] == max)
@@ -108,12 +106,21 @@ public class TetrisFilter extends GenericFilter
 
                 if (leaders.size() == 1)
                 {
-                    announce.setKey("filter.tetris.lead", leaders.get(0), max);
+                    announce.setKey("filter.tetris.lead", new Object[] { leaders.get(0), new Integer(max) });
                 }
                 else
                 {
-                    String leadersList = StringUtils.join(leaders.iterator(), ", ");
-                    announce.setKey("filter.tetris.tied", leadersList, max);
+                    StringBuffer message = new StringBuffer();
+                    Iterator it = leaders.iterator();
+                    while (it.hasNext())
+                    {
+                        message.append(it.next());
+                        if (it.hasNext())
+                        {
+                            message.append(", ");
+                        }
+                    }
+                    announce.setKey("filter.tetris.tied", new Object[] { message.toString(), new Integer(max) });
                 }
 
                 out.add(announce);
@@ -121,7 +128,7 @@ public class TetrisFilter extends GenericFilter
         }
     }
 
-    public void onMessage(TwoLinesAddedMessage m, List<Message> out)
+    public void onMessage(TwoLinesAddedMessage m, List out)
     {
         if (addToAll)
         {
@@ -129,7 +136,7 @@ public class TetrisFilter extends GenericFilter
         }
     }
 
-    public void onMessage(OneLineAddedMessage m, List<Message> out)
+    public void onMessage(OneLineAddedMessage m, List out)
     {
         if (addToAll)
         {
@@ -137,24 +144,15 @@ public class TetrisFilter extends GenericFilter
         }
     }
 
-    public String getName()
-    {
-        return "7 Tetris Mod";
-    }
+    public String getName() { return "7 Tetris Mod"; }
 
     public String getDescription()
     {
         return "Game mod - The first player completing 7 tetris win.";
     }
 
-    public String getVersion()
-    {
-        return "1.0";
-    }
+    public String getVersion() { return "1.0"; }
 
-    public String getAuthor()
-    {
-        return "Emmanuel Bourg";
-    }
+    public String getAuthor() { return "Emmanuel Bourg"; }
 
 }

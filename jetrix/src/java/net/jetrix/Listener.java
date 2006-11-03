@@ -25,31 +25,26 @@ package net.jetrix;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public interface Listener extends Runnable, Service
+public interface Listener extends Runnable
 {
     /**
      * Return the name of the listener.
      */
-    String getName();
+    public String getName();
 
     /**
      * Return the listening port.
      */
-    int getPort();
-
-    /**
-     * Set the port used the next time the listener is started.
-     */
-    void setPort(int port);
+    public int getPort();
 
     /**
      * Start the listener.
      */
-    void start();
+    public void start();
 
     /**
      * Stop the listener.
      */
-    void stop();
+    public void stop();
 
 }

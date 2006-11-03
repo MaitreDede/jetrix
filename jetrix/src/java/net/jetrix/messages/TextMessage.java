@@ -19,13 +19,8 @@
 
 package net.jetrix.messages;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-
-import net.jetrix.Language;
-import net.jetrix.Protocol;
-import net.jetrix.Server;
+import net.jetrix.*;
+import java.util.*;
 
 /**
  * A generic internationalized text message.
@@ -38,35 +33,28 @@ public abstract class TextMessage extends ChannelMessage
     private String text;
     private String key;
     private Object params[];
-    private Map<Locale, String> texts;
-    private Map<Protocol, Map<Locale, String>> rawMessages;
+    private Map texts;
+    private Map rawMessages;
 
     /**
      * Return the text of this message using the default server locale.
      */
     public String getText()
     {
-        if (key == null)
+        Locale defaultLocale = null;
+
+        if (Server.getInstance() != null)
         {
-            return text;
+            // get the server locale configured in config.xml
+            defaultLocale = Server.getInstance().getConfig().getLocale();
         }
         else
         {
-            Locale defaultLocale = null;
-
-            if (Server.getInstance() != null)
-            {
-                // get the server locale configured in config.xml
-                defaultLocale = Server.getInstance().getConfig().getLocale();
-            }
-            else
-            {
-                // get the default system locale
-                defaultLocale = Locale.getDefault();
-            }
-
-            return getText(defaultLocale);
+            // get the default system locale
+            defaultLocale = Locale.getDefault();
         }
+
+        return getText(defaultLocale);
     }
 
     /**
@@ -80,16 +68,13 @@ public abstract class TextMessage extends ChannelMessage
         }
         else
         {
-            if (texts == null)
-            {
-                texts = new HashMap<Locale, String>();
-            }
+            if (texts == null) { texts = new HashMap(); }
 
-            String s = texts.get(locale);
+            String s = (String)texts.get(locale);
 
             if (s == null)
             {
-                s = Language.getText(key, locale, params);
+                s = Language.getText(key, params, locale);
                 texts.put(locale, s);
             }
 
@@ -97,28 +82,23 @@ public abstract class TextMessage extends ChannelMessage
         }
     }
 
-    /**
-     * Set the text of the message (locale independant).
-     */
     public void setText(String text)
     {
         this.text = text;
         this.key = null;
     }
 
-    /**
-     * Return the key of the message.
-     */
     public String getKey()
     {
         return key;
     }
 
-    /**
-     * Set the key and the parameters of the message for internationalized
-     * text messages.
-     */
-    public void setKey(String key, Object... params)
+    public void setKey(String key)
+    {
+        this.key = key;
+    }
+
+    public void setKey(String key, Object[] params)
     {
         this.key = key;
         this.params = params;
@@ -134,19 +114,16 @@ public abstract class TextMessage extends ChannelMessage
         else
         {
             // use the caching on the (protocol, locale) combo
-            if (rawMessages == null)
-            {
-                rawMessages = new HashMap<Protocol, Map<Locale, String>>();
-            }
+            if (rawMessages == null) { rawMessages = new HashMap(); }
 
-            Map<Locale, String> i18nMessages = rawMessages.get(protocol);
+            Map i18nMessages = (Map)rawMessages.get(protocol);
             if (i18nMessages == null)
             {
-                i18nMessages = new HashMap<Locale, String>();
+                i18nMessages = new HashMap();
                 rawMessages.put(protocol, i18nMessages);
             }
 
-            String cachedMessage = i18nMessages.get(locale);
+            String cachedMessage = (String)i18nMessages.get(locale);
             if (cachedMessage == null)
             {
                 cachedMessage = protocol.translate(this, locale);

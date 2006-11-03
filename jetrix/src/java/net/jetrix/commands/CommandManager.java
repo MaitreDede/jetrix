@@ -20,11 +20,9 @@
 package net.jetrix.commands;
 
 import java.util.*;
-
-import org.apache.commons.collections.*;
-
 import net.jetrix.*;
 import net.jetrix.messages.*;
+import org.apache.commons.collections.*;
 
 /**
  * CommandManager
@@ -35,17 +33,13 @@ import net.jetrix.messages.*;
 public class CommandManager
 {
     private static CommandManager instance = new CommandManager();
-
-    /** aliases->commands Map */
-    private Map<String, Command> commands;
-
-    /** Set of commands sorted alphabetically by the main alias */
-    private Map<String, Command> commandSet;
+    private Map commands;
+    private Map commandSet;
 
     private CommandManager()
     {
-        commands = new TreeMap<String, Command>();
-        commandSet = new TreeMap<String, Command>();
+        commands = new TreeMap();
+        commandSet = new TreeMap();
     }
 
     public static CommandManager getInstance()
@@ -53,52 +47,20 @@ public class CommandManager
         return instance;
     }
 
-    /**
-     * Register a new command.
-     */
     public void addCommand(Command command)
     {
-        for (String alias : command.getAliases())
+        String aliases[] = command.getAliases();
+        for (int i = 0; i < aliases.length; i++)
         {
-            addCommandAlias(command, alias);
+            addCommandAlias(command, aliases[i]);
         }
 
-        if (command.getAliases().length > 0)
-        {
-            commandSet.put(command.getAliases()[0], command);
-        }
+        if (aliases.length > 0) commandSet.put(command.getAliases()[0], command);
     }
 
-    /**
-     * Register a new alias for a command.
-     */
     public void addCommandAlias(Command command, String alias)
     {
         commands.put(alias.toLowerCase(), command);
-    }
-
-    /**
-     * Remove a command.
-     */
-    public void removeCommand(Command command)
-    {
-        Iterator<String> aliases = commands.keySet().iterator();
-        while (aliases.hasNext())
-        {
-            if (commands.get(aliases.next()).getClass().equals(command.getClass()))
-            {
-                aliases.remove();
-            }
-        }
-
-        Iterator<Command> cmds = commandSet.values().iterator();
-        while (cmds.hasNext())
-        {
-            if (cmds.next().getClass().equals(command.getClass()))
-            {
-                cmds.remove();
-            }
-        }
     }
 
     /**
@@ -108,18 +70,17 @@ public class CommandManager
      */
     public Command getCommand(String alias)
     {
-        alias = alias.toLowerCase();
-        Command command = commands.get(alias);
+        Command command = (Command)commands.get(alias.toLowerCase());
 
         if (command == null)
         {
-            Iterator<String> aliases = commands.keySet().iterator();
+            Iterator aliases = commands.keySet().iterator();
             while (command == null && aliases.hasNext())
             {
-                String name = aliases.next();
-                if (name.startsWith(alias))
+                String name = ((String)aliases.next()).toLowerCase();
+                if (name.startsWith(alias.toLowerCase()))
                 {
-                    command = commands.get(name);
+                    command = (Command)commands.get(name);
                 }
             }
         }
@@ -131,22 +92,21 @@ public class CommandManager
      * Return all commands available to clients with the lowest
      * access level.
      */
-    public Iterator<Command> getCommands()
+    public Iterator getCommands()
     {
-        return getCommands(AccessLevel.PLAYER);
+         return getCommands(0);
     }
 
     /**
      * Return all commands available to clients with the specified
      * access level.
      */
-    public Iterator<Command> getCommands(final int accessLevel)
+    public Iterator getCommands(final int accessLevel)
     {
-        Predicate availableToLevel = new Predicate()
-        {
+        Predicate availableToLevel = new Predicate() {
             public boolean evaluate(Object obj)
             {
-                Command command = (Command) obj;
+                Command command = (Command)obj;
                 return command.getAccessLevel() <= accessLevel;
             }
         };
@@ -160,37 +120,19 @@ public class CommandManager
      */
     public void execute(CommandMessage m)
     {
-        execute(m, getCommand(m.getCommand()));
-    }
-
-    /**
-     * Execute an unregistered command.
-     */
-    public void execute(CommandMessage m, Command command)
-    {
-        Client client = (Client) m.getSource();
+        Command command = getCommand(m.getCommand());
+        Client client = (Client)m.getSource();
         if (command == null)
         {
             PlineMessage response = new PlineMessage();
             response.setKey("command.invalid");
-            client.send(response);
+            client.sendMessage(response);
         }
         else
         {
             // check the access level
             if (client.getUser().getAccessLevel() >= command.getAccessLevel())
             {
-                // check the number of parameters
-                if (command instanceof ParameterCommand && m.getParameterCount() < ((ParameterCommand) command).getParameterCount())
-                {
-                    // not enough parameters
-                    PlineMessage response = new PlineMessage();
-                    response.setText(colorizeUsage(command.getUsage(client.getUser().getLocale())));
-                    client.send(response);
-                    return;
-                }
-
-                // execute the command
                 try
                 {
                     command.execute(m);
@@ -205,7 +147,7 @@ public class CommandManager
                 // denying access
                 PlineMessage response = new PlineMessage();
                 response.setKey("command.denied");
-                client.send(response);
+                client.sendMessage(response);
             }
         }
     }
@@ -217,31 +159,6 @@ public class CommandManager
     {
         commands.clear();
         commandSet.clear();
-    }
-
-    /**
-     * Return a colorized usage string of the specified command.
-     */
-    String colorizeUsage(String usage)
-    {
-        usage = usage.trim();
-        int i = usage.indexOf(" ");
-
-        StringBuilder colorized = new StringBuilder();
-        colorized.append("<red>");
-
-        if (i > -1)
-        {
-            colorized.append(usage.substring(0, i));
-            colorized.append(" <blue>");
-            colorized.append(usage.substring(i + 1));
-        }
-        else
-        {
-            colorized.append(usage);
-        }
-
-        return colorized.toString();
     }
 
 }

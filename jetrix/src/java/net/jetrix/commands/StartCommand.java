@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,10 +19,7 @@
 
 package net.jetrix.commands;
 
-import static net.jetrix.GameState.*;
-
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.messages.*;
 
@@ -32,11 +29,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class StartCommand extends AbstractCommand
+public class StartCommand implements Command
 {
-    public String getAlias()
+    private int accessLevel = 0;
+
+    public String[] getAliases()
     {
-        return "start";
+        return (new String[] { "start" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -44,19 +48,24 @@ public class StartCommand extends AbstractCommand
         return "/start <" + Language.getText("command.params.seconds", locale) + ">";
     }
 
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.start.description", locale);
+    }
+
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
         Channel channel = client.getChannel();
 
-        if (channel != null && channel.getGameState() == STOPPED)
+        if (channel != null)
         {
             // delay in seconds for the countdown
             int delay = 0;
 
             if (m.getParameterCount() > 0)
             {
-                delay = m.getIntParameter(0, delay);
+                try { delay = Integer.parseInt(m.getParameter(0)); } catch (Exception e) { };
             }
 
             // the delay is capped at 20 seconds
@@ -64,11 +73,6 @@ public class StartCommand extends AbstractCommand
 
             if (delay > 0)
             {
-                // tell who started the game
-                PlineMessage message = new PlineMessage();
-                message.setKey("channel.game.started-by", client.getUser().getName());
-                channel.send(message);
-
                 (new StartCommand.CountDown(channel, delay)).start();
             }
             else
@@ -76,7 +80,7 @@ public class StartCommand extends AbstractCommand
                 StartGameMessage start = new StartGameMessage();
                 start.setSlot(channel.getClientSlot(client));
                 start.setSource(client);
-                channel.send(start);
+                channel.sendMessage(start);
             }
         }
     }
@@ -84,18 +88,18 @@ public class StartCommand extends AbstractCommand
     /**
      * A countdown thread to delay the beginning of the game.
      */
-    public static class CountDown extends Thread
+    private static class CountDown extends Thread
     {
         private Channel channel;
         private int delay;
         /** */
-        private static Map<Channel, CountDown> countdowns = new HashMap<Channel, CountDown>();
+        private static Map countdowns = new HashMap();
 
         /**
          * Construct a new game countdown.
          *
          * @param channel the channel where game will start
-         * @param delay   the delay in seconds for this countdown
+         * @param delay the delay in seconds for this countdown
          */
         public CountDown(Channel channel, int delay)
         {
@@ -106,31 +110,31 @@ public class StartCommand extends AbstractCommand
         public void run()
         {
             // don't start the countdown is the game has already started
-            if (channel.getGameState() != STOPPED) return;
+            if (channel.getGameState() != Channel.GAME_STATE_STOPPED) return;
 
             // don't start the countdown if another one is already running
             if (countdowns.get(channel) != null) return;
             countdowns.put(channel, this);
 
             PlineMessage getready1 = new PlineMessage();
-            GmsgMessage getready2 = new GmsgMessage();
+            GmsgMessage  getready2 = new GmsgMessage();
             getready1.setKey("command.start.get_ready");
             getready2.setKey("command.start.get_ready.gmsg");
-            channel.send(getready1);
-            channel.send(getready2);
+            channel.sendMessage(getready1);
+            channel.sendMessage(getready2);
 
             // start the count down...
             for (int i = delay; i > 0; i--)
             {
                 PlineMessage msg1 = new PlineMessage();
-                GmsgMessage msg2 = new GmsgMessage();
+                GmsgMessage  msg2 = new GmsgMessage();
 
                 // plural or singular ? :)
                 if (i > 1)
                 {
-                    Integer seconds = new Integer(i);
-                    msg1.setKey("command.start.seconds", seconds);
-                    msg2.setKey("command.start.seconds.gmsg", seconds);
+                    Object[] params = new Object[] { new Integer(i)};
+                    msg1.setKey("command.start.seconds", params);
+                    msg2.setKey("command.start.seconds.gmsg", params);
                 }
                 else
                 {
@@ -138,18 +142,12 @@ public class StartCommand extends AbstractCommand
                     msg2.setKey("command.start.second.gmsg");
                 }
 
-                channel.send(msg1);
-                channel.send(msg2);
-                try
-                {
-                    sleep(1000);
-                }
-                catch (InterruptedException e)
-                {
-                }
+                channel.sendMessage(msg1);
+                channel.sendMessage(msg2);
+                try { sleep(1000); } catch(InterruptedException e) { }
 
                 // cancel the countdown if the game has started
-                if (channel.getGameState() != STOPPED)
+                if (channel.getGameState() != Channel.GAME_STATE_STOPPED)
                 {
                     countdowns.put(channel, null);
                     return;
@@ -158,15 +156,15 @@ public class StartCommand extends AbstractCommand
 
             // announce "GO!"
             PlineMessage go1 = new PlineMessage();
-            GmsgMessage go2 = new GmsgMessage();
+            GmsgMessage  go2 = new GmsgMessage();
             go1.setKey("command.start.go");
             go2.setKey("command.start.go.gmsg");
-            channel.send(go1);
-            channel.send(go2);
+            channel.sendMessage(go1);
+            channel.sendMessage(go2);
 
             // start the game
             StartGameMessage start = new StartGameMessage();
-            channel.send(start);
+            channel.sendMessage(start);
 
             countdowns.put(channel, null);
         }

@@ -30,17 +30,16 @@ import java.util.*;
 public abstract class Message
 {
     private Destination source;
-    private Destination destination;
-    private long time;
-    private Map<Protocol, String> rawMessages;
+    private Date date;
+    private Map rawMessages;
 
     /**
      * Constructs a new server message.
      */
     public Message()
     {
-        this.time = System.currentTimeMillis();
-        rawMessages = new HashMap<Protocol, String>();
+        this.date = new Date();
+        rawMessages = new HashMap();
     }
 
     /**
@@ -61,26 +60,11 @@ public abstract class Message
     }
 
     /**
-     * Return the destination of this message. If the destination is null the
-     * default destination is the current channel of the user.
-     */
-    public Destination getDestination() {
-        return destination;
-    }
-
-    /**
-     * Set the destination of this message (optional).
-     */
-    public void setDestination(Destination destination) {
-        this.destination = destination;
-    }
-
-    /**
      * Returns the creation date of this message.
      */
-    public long getTime()
+    public Date getDate()
     {
-        return time;
+        return date;
     }
 
     /**
@@ -97,16 +81,16 @@ public abstract class Message
     public String getRawMessage(Protocol protocol, Locale locale)
     {
         // is the raw message available for the specified protocol
-        String message = rawMessages.get(protocol);
+        String msg = (String)rawMessages.get(protocol);
 
-        if (message == null)
+        if (msg == null)
         {
             // building the raw message for this protocol
-            message = protocol.translate(this, locale);
-            rawMessages.put(protocol, message);
+            msg = protocol.translate(this, locale);
+            rawMessages.put(protocol, msg);
         }
 
-        return message;
+        return msg;
     }
 
 }

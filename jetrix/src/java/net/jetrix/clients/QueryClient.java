@@ -19,14 +19,13 @@
 
 package net.jetrix.clients;
 
-import java.io.*;
 import java.util.*;
-import java.util.logging.*;
+import java.io.*;
 
 import net.jetrix.*;
+import net.jetrix.protocols.*;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
-import net.jetrix.protocols.*;
 
 /**
  * Client for the query protocol on port 31457.
@@ -40,18 +39,12 @@ public class QueryClient extends TetrinetClient
 
     public void run()
     {
-        if (log.isLoggable(Level.FINE))
-        {
-            log.fine("Client started " + this);
-        }
+        logger.fine("Client started " + this);
 
         connectionTime = new Date();
 
         Server server = Server.getInstance();
-        if (server != null)
-        {
-            serverConfig = server.getConfig();
-        }
+        if (server != null) serverConfig = server.getConfig();
 
         try
         {
@@ -59,7 +52,8 @@ public class QueryClient extends TetrinetClient
 
             while (!disconnected && serverConfig.isRunning())
             {
-                process(receive());
+                Message m = receiveMessage();
+                process(m);
             }
         }
         catch (Exception e)
@@ -68,15 +62,12 @@ public class QueryClient extends TetrinetClient
         }
         finally
         {
-            try { in.close(); } catch (IOException e) { e.printStackTrace(); }
-            try { out.close(); } catch (IOException e) { e.printStackTrace(); }
+            try { in.close(); }     catch (IOException e) { e.printStackTrace(); }
+            try { out.close(); }    catch (IOException e) { e.printStackTrace(); }
             try { socket.close(); } catch (IOException e) { e.printStackTrace(); }
         }
 
-        if (log.isLoggable(Level.FINE))
-        {
-            log.fine("Client disconnected (" + getInetAddress().getHostAddress() + ")");
-        }
+        logger.fine("Client disconnected (" + getInetAddress().getHostAddress() + ")");
     }
 
     private void process(Message m)
@@ -89,9 +80,11 @@ public class QueryClient extends TetrinetClient
             if ("listuser".equals(command.getCommand()))
             {
                 // "<nick>" "<team>" "<version>" <slot> <state> <auth> "<channelname>"
-                StringBuilder message = new StringBuilder();
-                for (Client client : ClientRepository.getInstance().getClients())
+                StringBuffer message = new StringBuffer();
+                Iterator clients = ClientRepository.getInstance().getClients();
+                while (clients.hasNext())
                 {
+                    Client client = (Client) clients.next();
                     User user = client.getUser();
                     message.append("\"");
                     message.append(user.getName());
@@ -108,7 +101,10 @@ public class QueryClient extends TetrinetClient
                     message.append(" \"");
                     message.append(client.getChannel().getConfig().getName());
                     message.append("\"");
-                    message.append(QueryProtocol.EOL);
+                    if (clients.hasNext())
+                    {
+                        message.append(QueryProtocol.EOL);
+                    }
                 }
 
                 response.setText(message.toString());
@@ -116,23 +112,25 @@ public class QueryClient extends TetrinetClient
             else if ("listchan".equals(command.getCommand()))
             {
                 // "<name>" "<description>" <playernum> <playermax> <priority> <status>
-                StringBuilder message = new StringBuilder();
-                for (Channel channel : ChannelManager.getInstance().channels())
+                StringBuffer message = new StringBuffer();
+                Iterator channels = ChannelManager.getInstance().channels();
+                while (channels.hasNext())
                 {
+                    Channel channel = (Channel) channels.next();
                     ChannelConfig config = channel.getConfig();
 
-                    if (config.isVisible())
+                    message.append("\"");
+                    message.append(config.getName());
+                    message.append("\" \"");
+                    message.append(config.getDescription());
+                    message.append("\" ");
+                    message.append(channel.getPlayerCount());
+                    message.append(" ");
+                    message.append(config.getMaxPlayers());
+                    message.append(" 0 ");
+                    message.append(channel.getGameState() + 1);
+                    if (channels.hasNext())
                     {
-                        message.append("\"");
-                        message.append(config.getName());
-                        message.append("\" \"");
-                        message.append(config.getDescription());
-                        message.append("\" ");
-                        message.append(channel.getPlayerCount());
-                        message.append(" ");
-                        message.append(config.getMaxPlayers());
-                        message.append(" 0 ");
-                        message.append(channel.getGameState().getValue() + 1);
                         message.append(QueryProtocol.EOL);
                     }
                 }
@@ -145,16 +143,16 @@ public class QueryClient extends TetrinetClient
             }
             else if ("version".equals(command.getCommand()))
             {
-                response.setText("Jetrix/" + ServerConfig.VERSION + QueryProtocol.EOL);
+                response.setText("JetriX/" + ServerConfig.VERSION);
             }
 
-            send(response);
+            sendMessage(response);
         }
         else
         {
             NoConnectingMessage noconnecting = new NoConnectingMessage();
             noconnecting.setText("Wrong command");
-            send(noconnecting);
+            sendMessage(noconnecting);
             disconnected = true;
         }
     }
@@ -166,38 +164,4 @@ public class QueryClient extends TetrinetClient
     {
         this.firstMessage = firstMessage;
     }
-
-    public void send(Message m)
-    {
-        String rawMessage = m.getRawMessage(getProtocol(), null);
-
-        try
-        {
-            out.write(rawMessage + QueryProtocol.EOL, 0, rawMessage.length() + 1);
-            out.flush();
-
-            if (log.isLoggable(Level.FINEST))
-            {
-                log.finest("> " + rawMessage);
-            }
-        }
-        catch (Exception e)
-        {
-            if (log.isLoggable(Level.FINE))
-            {
-                log.fine(e.getMessage());
-            }
-        }
-    }
-
-    public boolean supportsAutoJoin()
-    {
-        return false;
-    }
-
-    protected boolean isAsynchronous()
-    {
-        return false;
-    }
-
 }

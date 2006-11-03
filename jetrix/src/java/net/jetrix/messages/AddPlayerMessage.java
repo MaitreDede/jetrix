@@ -19,8 +19,7 @@
 
 package net.jetrix.messages;
 
-import net.jetrix.Client;
-import net.jetrix.Message;
+import net.jetrix.*;
 
 /**
  * A message indicating a new client joined the server.
@@ -42,7 +41,7 @@ public class AddPlayerMessage extends Message
 
     public Client getClient()
     {
-        return client != null ? client : (Client) getSource();
+        return client;
     }
 
     public void setClient(Client client)

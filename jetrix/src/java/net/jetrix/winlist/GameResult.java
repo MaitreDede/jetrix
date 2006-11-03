@@ -33,8 +33,7 @@ public class GameResult
 {
     private Date startTime;
     private Date endTime;
-    private List<GamePlayer> gamePlayers;
-    private Channel channel;
+    private List gamePlayers;
 
     /**
      * Return the date of the beginning of the game.
@@ -63,33 +62,19 @@ public class GameResult
     }
 
     /**
-     * Return the channel associated to this result. It may be used to send a
-     * message in the channel reporting the new scores of the players.
-     */
-    public Channel getChannel()
-    {
-        return channel;
-    }
-
-    public void setChannel(Channel channel)
-    {
-        this.channel = channel;
-    }
-
-    /**
      * Return the list of players involved in the game. The collection contains
      * instances of GamePlayer.
      */
-    public Collection<GamePlayer> getGamePlayers()
+    public Collection getGamePlayers()
     {
         return gamePlayers;
     }
 
-    private void addGamePlayer(GamePlayer gamePlayer)
+    public void addGamePlayer(GamePlayer gamePlayer)
     {
         if (gamePlayers == null)
         {
-            gamePlayers = new ArrayList<GamePlayer>();
+            gamePlayers = new ArrayList();
         }
         gamePlayers.add(gamePlayer);
     }
@@ -110,15 +95,17 @@ public class GameResult
     /**
      * Return the players that finished the game at the specified rank.
      */
-    public Collection<GamePlayer> getPlayersAtRank(int rank)
-    {
-        Collection<GamePlayer> players = new ArrayList<GamePlayer>();
+    public Collection getPlayersAtRank(int rank) {
+
+        Collection players = new ArrayList();
 
         if (rank == 1)
         {
             // look for the winners
-            for (GamePlayer player : gamePlayers)
+            Iterator it = gamePlayers.iterator();
+            while (it.hasNext())
             {
+                GamePlayer player = (GamePlayer) it.next();
                 if (player.isWinner())
                 {
                     players.add(player);
@@ -127,23 +114,22 @@ public class GameResult
         }
         else
         {
-            // sort by date (reverse order)
-            Collections.sort(gamePlayers, new Comparator()
-            {
+            // sort by date
+            Collections.sort(gamePlayers, new Comparator() {
                 public int compare(Object o1, Object o2)
                 {
                     GamePlayer player1 = (GamePlayer) o1;
                     GamePlayer player2 = (GamePlayer) o2;
-                    return player2.getEndTime().compareTo(player1.getEndTime());
+                    return player1.getEndTime().compareTo(player2.getEndTime());
                 }
             });
 
             // find the player at the specified rank
             int i = 1;
-            Iterator<GamePlayer> it = gamePlayers.iterator();
+            Iterator it = gamePlayers.iterator();
             while (it.hasNext() && i < rank)
             {
-                GamePlayer player = it.next();
+                GamePlayer player = (GamePlayer) it.next();
                 if (!player.isWinner())
                 {
                     i++;
@@ -157,31 +143,4 @@ public class GameResult
 
         return players;
     }
-
-    /**
-     * Return the number of teams in this game.
-     */
-    public int getTeamCount()
-    {
-        Map<String, String> teams = new HashMap<String, String>();
-
-        int teamCount = 0;
-
-        for (GamePlayer player : gamePlayers)
-        {
-            String team = player.getTeamName();
-
-            if (team == null)
-            {
-                teamCount++;
-            }
-            else
-            {
-                teams.put(team, team);
-            }
-        }
-
-        return teamCount + teams.size();
-    }
-
 }

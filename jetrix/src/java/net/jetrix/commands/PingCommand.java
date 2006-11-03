@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,8 +20,8 @@
 package net.jetrix.commands;
 
 import java.util.*;
-
 import net.jetrix.*;
+import net.jetrix.config.*;
 import net.jetrix.messages.*;
 
 /**
@@ -39,16 +39,33 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class PingCommand extends AbstractCommand
+public class PingCommand implements Command
 {
-    public String getAlias()
+    private int accessLevel = 0;
+
+    public String[] getAliases()
     {
-        return "ping";
+        return (new String[] { "ping" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
+    }
+
+    public String getUsage(Locale locale)
+    {
+        return "/ping";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.ping.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
         User user = client.getUser();
 
         // @todo check if the client use the tetrinet protocol
@@ -63,6 +80,6 @@ public class PingCommand extends AbstractCommand
         user.setProperty("command.ping", "true");
         user.setProperty("command.ping.time", new Long(System.currentTimeMillis()));
 
-        client.send(response);
+        client.sendMessage(response);
     }
 }

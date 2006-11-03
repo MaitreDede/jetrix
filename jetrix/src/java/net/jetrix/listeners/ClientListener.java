@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2005  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,16 +21,12 @@ package net.jetrix.listeners;
 
 import java.io.*;
 import java.net.*;
-import java.util.*;
 import java.util.logging.*;
-
 
 import net.jetrix.*;
 import net.jetrix.clients.*;
 import net.jetrix.config.*;
-import net.jetrix.listeners.interceptor.*;
 import net.jetrix.messages.*;
-import net.jetrix.services.*;
 
 /**
  * Abstract Listener waiting for incomming clients.
@@ -38,12 +34,11 @@ import net.jetrix.services.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public abstract class ClientListener extends AbstractService implements Listener
+public abstract class ClientListener implements Listener
 {
     private ServerSocket serverSocket;
     private Socket socket;
-    protected int port;
-    private Logger log;
+    private Logger logger;
     private boolean running;
 
     /**
@@ -58,25 +53,24 @@ public abstract class ClientListener extends AbstractService implements Listener
      */
     public final void run()
     {
-        log = Logger.getLogger("net.jetrix");
+        logger = Logger.getLogger("net.jetrix");
         ServerConfig serverConfig = Server.getInstance().getConfig();
         running = true;
 
         try
         {
-            // bind the listener to the host & port
             serverSocket = new ServerSocket(getPort(), 50, serverConfig.getHost());
-            log.info("Listening at " + getName() + " port " + getPort()
-                    + ((serverConfig.getHost() != null) ? ", bound to " + serverConfig.getHost() : ""));
+            logger.info("Listening at " + getName() + " port " + getPort()
+                + ( (serverConfig.getHost() != null)?", bound to " + serverConfig.getHost():"") );
         }
         catch (BindException e)
         {
-            log.severe("Unable to bind " + getName() + " listener at port " + getPort());
+            logger.severe("Unable to bind " + getName() + " listener at port " + getPort());
             running = false;
         }
         catch (IOException e)
         {
-            log.severe("Cannot open ServerSocket");
+            logger.severe("Cannot open ServerSocket");
             e.printStackTrace();
         }
 
@@ -87,49 +81,99 @@ public abstract class ClientListener extends AbstractService implements Listener
                 // waiting for connexions
                 socket = serverSocket.accept();
                 socket.setSoTimeout(10000);
-
                 InetAddress address = socket.getInetAddress();
 
                 // log the connection
-                log.info("Incoming client " + address.getHostAddress() + ":" + socket.getPort());
+                logger.info("Incoming client " + address.getHostAddress() + ":" + socket.getPort());
 
                 // test the ban list
                 if (Banlist.getInstance().isBanned(address))
                 {
                     socket.close();
-                    log.info("Banned host, client rejected (" + address + ")");
+                    logger.info("Banned host, client rejected (" + address + ")");
                     continue;
                 }
 
-                // spawn the client verifier processing the interceptors
-                new ClientVerifier(socket).start();
+                Client client = getClient(socket);
+                User user = client.getUser();
+                user.setLocale(serverConfig.getLocale());
+
+                // check if the server is full
+                ClientRepository repository = ClientRepository.getInstance();
+                if (repository.getClientCount() >= serverConfig.getMaxPlayers()
+                    && !(client instanceof QueryClient))
+                {
+                    logger.info("Server full, client rejected (" + address + ").");
+                    Message m = new NoConnectingMessage("Server is full!");
+                    client.sendMessage(m);
+                    socket.close();
+                    continue;
+                }
+
+                // test concurrent connections from the same host
+                int maxConnections = serverConfig.getMaxConnections();
+                if (maxConnections > 0 && repository.getHostCount(address) >= maxConnections)
+                {
+                    logger.info("Too many connections from host, client rejected (" + address + ").");
+                    Message m = new NoConnectingMessage("Too many connections from your host!");
+                    client.sendMessage(m);
+                    socket.close();
+                    continue;
+                }
+
+                // testing name unicity
+                if (repository.getClient(user.getName()) != null)
+                {
+                    Message m = new NoConnectingMessage("Nickname already in use!");
+                    client.sendMessage(m);
+                    socket.close();
+                    continue;
+                }
+
+                // validate the name
+                String name = user.getName();
+                if (!(client instanceof QueryClient) && (name == null || "server".equals(name.toLowerCase()) || name.indexOf("\u00a0") != -1))
+                {
+                    Message m = new NoConnectingMessage("Invalid name!");
+                    client.sendMessage(m);
+                    socket.close();
+                    continue;
+                }
+
+                logger.fine("Client accepted (" + address + ")");
+                socket.setSoTimeout(serverConfig.getTimeout() * 1000);
+
+                if (!(client instanceof QueryClient))
+                {
+                    // add the client to the repository
+                    repository.addClient(client);
+
+                    // send the message of the day
+                    BufferedReader motd = new BufferedReader(new StringReader( serverConfig.getMessageOfTheDay() ));
+                    String motdline;
+                    while( (motdline = motd.readLine() ) != null )
+                    {
+                        PlineMessage m = new PlineMessage();
+                        m.setText("<gray>" + motdline);
+                        client.sendMessage(m);
+                    }
+                    motd.close();
+
+                    // forward the client to the server for channel assignation
+                    AddPlayerMessage m = new AddPlayerMessage();
+                    m.setClient(client);
+                    Server.getInstance().sendMessage(m);
+                }
+
+                // start the client
+                (new Thread(client)).start();
             }
             catch (Exception e)
             {
-                try
-                {
-                    if (socket != null)
-                    {
-                        socket.close();
-                    }
-                }
-                catch (IOException ioe)
-                {
-                    ioe.printStackTrace();
-                }
+                try { if (socket != null) socket.close(); } catch (IOException ioe) { ioe.printStackTrace(); }
                 e.printStackTrace();
             }
         }
-    }
-
-    public int getPort()
-    {
-        return port;
-    }
-
-    public void setPort(int port)
-    {
-        this.port = port;
     }
 
     /**
@@ -137,7 +181,7 @@ public abstract class ClientListener extends AbstractService implements Listener
      */
     public void start()
     {
-        (new Thread(this, "listener: " + getName())).start();
+        (new Thread(this)).start();
     }
 
     /**
@@ -147,7 +191,7 @@ public abstract class ClientListener extends AbstractService implements Listener
     {
         try
         {
-            log.info("Stopping listener " + getName());
+            logger.info("Stopping listener " + getName());
             running = false;
             serverSocket.close();
         }
@@ -157,111 +201,9 @@ public abstract class ClientListener extends AbstractService implements Listener
         }
     }
 
-    public boolean isRunning()
-    {
-        return running;
-    }
-
     public String toString()
     {
         return "[Listener name='" + getName() + "' port=" + getPort() + "]";
-    }
-
-    /**
-     * Thread checking incoming connections and spawning a new client
-     * if everything is ok.
-     *
-     * @since 0.2
-     */
-    private class ClientVerifier extends Thread
-    {
-        private Socket socket;
-
-        public ClientVerifier(Socket socket)
-        {
-            super("client-verifier:" + socket.getInetAddress().getHostAddress());
-            this.socket = socket;
-        }
-
-        public void run()
-        {
-            ServerConfig serverConfig = Server.getInstance().getConfig();
-            InetAddress address = socket.getInetAddress();
-
-            try
-            {
-                Client client = getClient(socket);
-
-                if (client != null)
-                {
-                    User user = client.getUser();
-                    user.setLocale(serverConfig.getLocale());
-
-                    // todo move the declaration of the interceptors in the server configuration
-                    Collection<ClientInterceptor> validators = new ArrayList<ClientInterceptor>();
-                    validators.add(new AccessInterceptor());
-                    validators.add(new NameCheckInterceptor());
-
-                    // run the validators
-                    for (ClientInterceptor interceptor : validators)
-                    {
-                        interceptor.process(client);
-                    }
-
-                    log.fine("Client accepted (" + address + ")");
-                    socket.setSoTimeout(serverConfig.getTimeout() * 1000);
-
-                    if (!(client instanceof QueryClient))
-                    {
-                        // add the client to the repository
-                        ClientRepository repository = ClientRepository.getInstance();
-                        repository.addClient(client);
-
-                        Collection<ClientInterceptor> interceptors = new ArrayList<ClientInterceptor>();
-                        interceptors.add(new MotdInterceptor());
-                        interceptors.add(new OnlineUsersInterceptor());
-                        interceptors.add(new ServerStatsInterceptor());
-
-                        // run the interceptors
-                        for (ClientInterceptor interceptor : interceptors)
-                        {
-                            interceptor.process(client);
-                        }
-
-                        // forward the client to the server for channel assignation
-                        if (client.supportsAutoJoin())
-                        {
-                            AddPlayerMessage m = new AddPlayerMessage();
-                            m.setClient(client);
-                            Server.getInstance().send(m);
-                        }
-                    }
-
-                    // start the client
-                    (new Thread(client, "client: " + client.getUser().getName())).start();
-                }
-            }
-            catch (Exception e)
-            {
-                try
-                {
-                    if (socket != null)
-                    {
-                        socket.close();
-                    }
-                }
-                catch (IOException ioe)
-                {
-                    ioe.printStackTrace();
-                }
-
-                if (!(e instanceof ClientValidationException))
-                {
-                    e.printStackTrace();
-                }
-            }
-
-        }
     }
 
 }

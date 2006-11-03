@@ -20,13 +20,12 @@
 package net.jetrix.filter;
 
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.config.*;
 
 /**
- * Abstract class defining a channel filter. A filter transforms a given message
- * into a list of messages. Concrete filters just need to inherit from this
+ * Abstract class defining a channel filter. A filter transforms a given message 
+ * into a list of messages. Concrete filters just need to inherit from this 
  * class and implement the process() method.
  *
  * @author Emmanuel Bourg
@@ -36,10 +35,14 @@ public abstract class MessageFilter
 {
     private Properties props;
     private Channel channel;
-    protected FilterConfig config;
+
+    public MessageFilter()
+    {
+        props = new Properties();
+    }
 
     /**
-     * Indicates if the filter is shared or not. A shared filter should be
+     * Indicates if the filter is a slingleton or not. A filter should be
      * a singleton if it's independant from the channel context (for example:
      * a color stripper or a profanity filter). By default a filter is not
      * a singleton. This method must be overwritten to return true if the
@@ -47,84 +50,52 @@ public abstract class MessageFilter
      *
      * @return <tt>false</tt>
      */
-    public boolean isShared()
+    public static boolean isSingleton()
     {
         return false;
     }
 
     /**
-     * Called by the channel to indicate to a filter that the filter is being
-     * placed into service.
+     * Called by the channel to indicate to a filter that the filter is being placed into service.
      */
-    public void init() { }
+    public void init(FilterConfig conf) {}
 
     /**
-     * Set the configuration used to initialize this filter.
+     * Called by the channel to indicate to a filter that the filter is being taken out of service.
      */
-    public void setConfig(FilterConfig config)
-    {
-        this.config = config;
-    }
-
-    /**
-     * Return the configuration used to initialize this filter.
-     */
-    public FilterConfig getConfig()
-    {
-        return config;
-    }
-
-    /**
-     * Called by the channel to indicate to a filter that the filter is being
-     * taken out of service.
-     */
-    public void destroy()
-    {
-    }
+    public void destroy() {}
 
     /**
      * Process a message and outputs messages to the specified List.
      */
-    public abstract void process(Message m, List<Message> out);
+    public abstract void process(Message m, List out);
 
     /**
      * Returns the name of this filter.
      */
-    public String getName()
-    {
-        return "unknown filter";
-    }
+    public String getName() { return "unknown filter"; }
 
     /**
      * Returns a short description of this filter.
      */
-    public String getDescription()
-    {
-        return "no description";
-    }
+    public String getDescription() { return "no description"; }
 
     /**
      * Returns the version of this filter
      */
-    public String getVersion()
-    {
-        return "1.0";
-    }
+    public String getVersion() { return "1.0"; }
 
     /**
      * Returns the author of this filter.
      */
-    public String getAuthor()
-    {
-        return "unknown";
-    }
+    public String getAuthor() { return "unknown"; }
 
     /**
      * Gets the filter property indicated by the specified key.
      */
     public final String getProperty(String key)
     {
-        return (props == null) ? null : props.getProperty(key);
+        return props.getProperty(key);
     }
 
     /**
@@ -132,10 +103,6 @@ public abstract class MessageFilter
      */
     public final void setProperty(String key, String value)
     {
-        if (props == null)
-        {
-            props = new Properties();
-        }
         props.setProperty(key, value);
     }
 
@@ -148,13 +115,10 @@ public abstract class MessageFilter
     }
 
     /**
-     * Sets the channel this filter applies on.
+     * Sets the channel this channel applies on.
      */
     public final void setChannel(Channel channel)
     {
-        if (!isShared())
-        {
-            this.channel = channel;
-        }
+        if ( !isSingleton() ) { this.channel = channel; }
     }
 }

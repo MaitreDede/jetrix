@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,21 +29,33 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class StopCommand extends AbstractCommand
+public class StopCommand implements Command
 {
-    public StopCommand()
+    private int accessLevel = 1;
+
+    public String[] getAliases()
     {
-        setAccessLevel(AccessLevel.OPERATOR);
+        return (new String[] { "stop" });
     }
 
-    public String getAlias()
+    public int getAccessLevel()
     {
-        return "stop";
+        return accessLevel;
+    }
+
+    public String getUsage(Locale locale)
+    {
+        return "/stop";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.stop.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
         Channel channel = client.getChannel();
 
         if (channel != null)
@@ -51,7 +63,7 @@ public class StopCommand extends AbstractCommand
             StopGameMessage stop = new StopGameMessage();
             stop.setSlot(channel.getClientSlot(client));
             stop.setSource(client);
-            channel.send(stop);
+            channel.sendMessage(stop);
         }
     }
 

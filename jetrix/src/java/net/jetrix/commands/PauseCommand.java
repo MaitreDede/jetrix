@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,8 +19,6 @@
 
 package net.jetrix.commands;
 
-import static net.jetrix.GameState.*;
-
 import java.util.*;
 import net.jetrix.*;
 import net.jetrix.messages.*;
@@ -31,27 +29,39 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class PauseCommand extends AbstractCommand implements Command
+public class PauseCommand implements Command
 {
-    public PauseCommand()
+    private int accessLevel = 1;
+
+    public String[] getAliases()
     {
-        setAccessLevel(AccessLevel.OPERATOR);
+        return (new String[] { "pause" });
     }
 
-    public String getAlias()
+    public int getAccessLevel()
     {
-        return "pause";
+        return accessLevel;
+    }
+
+    public String getUsage(Locale locale)
+    {
+        return "/pause";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.pause.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
         Channel channel = client.getChannel();
 
         if (channel != null)
         {
             ChannelMessage pause = null;
-            if (channel.getGameState() == PAUSED)
+            if (channel.getGameState() == Channel.GAME_STATE_PAUSED)
             {
                 pause = new ResumeMessage();
             }
@@ -62,7 +72,7 @@ public class PauseCommand extends AbstractCommand implements Command
 
             pause.setSlot(channel.getClientSlot(client));
             pause.setSource(client);
-            channel.send(pause);
+            channel.sendMessage(pause);
         }
     }
 

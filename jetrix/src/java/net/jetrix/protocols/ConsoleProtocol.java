@@ -29,9 +29,9 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class ConsoleProtocol extends AbstractProtocol
+public class ConsoleProtocol implements Protocol
 {
-    private static Map<String, String> styles = new HashMap<String, String>();
+    private static Map styles = new HashMap();
 
     static
     {
@@ -95,10 +95,7 @@ public class ConsoleProtocol extends AbstractProtocol
      */
     public String translate(Message m, Locale locale)
     {
-        if (m instanceof TextMessage)
-        {
-            return translate((TextMessage) m, locale);
-        }
+        if ( m instanceof TextMessage) return translate((TextMessage)m, locale);
         else
         {
             return null;
@@ -107,12 +104,12 @@ public class ConsoleProtocol extends AbstractProtocol
 
     public String translate(TextMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append(applyStyle(m.getText(locale)));
         return message.toString();
     }
 
-    public Map<String, String> getStyles()
+    public Map getStyles()
     {
         return styles;
     }
@@ -120,12 +117,14 @@ public class ConsoleProtocol extends AbstractProtocol
     public String applyStyle(String text)
     {
         // to be optimized later
-        Map<String, String> styles = getStyles();
+        Map styles = getStyles();
         if (styles == null) return text;
-
-        for (String key : styles.keySet())
+        
+        Iterator keys = styles.keySet().iterator();
+        while (keys.hasNext())
         {
-            String value = styles.get(key);
+            String key = (String)keys.next();
+            String value = (String)styles.get(key);
             if (value == null) { value = ""; }
             text = text.replaceAll("<" + key + ">", value);
             text = text.replaceAll("</" + key + ">", value);
@@ -133,9 +132,9 @@ public class ConsoleProtocol extends AbstractProtocol
         return text;
     }
 
-    public char getEOL()
+    public String toString()
     {
-        return '\n';
+        return "[Protocol name=" + getName() + "]";
     }
 
 }

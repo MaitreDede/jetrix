@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,16 +29,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class BroadcastCommand extends AbstractCommand implements ParameterCommand
+public class BroadcastCommand implements Command
 {
-    public BroadcastCommand()
-    {
-        setAccessLevel(AccessLevel.OPERATOR);
-    }
+    private int accessLevel = 1;
 
     public String[] getAliases()
     {
         return (new String[] { "broadcast", "br", "gmsg", "shout" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -46,23 +48,36 @@ public class BroadcastCommand extends AbstractCommand implements ParameterComman
         return "/br <" + Language.getText("command.params.message", locale) + ">";
     }
 
-    public int getParameterCount()
+    public String getDescription(Locale locale)
     {
-        return 1;
+        return Language.getText("command.broadcast.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
-        // preparing message
-        PlineMessage response = new PlineMessage();
-        response.setKey("command.broadcast.message", client.getUser().getName(), m.getText());
-        response.setSource(client);
-
-        for (Client target : ClientRepository.getInstance().getClients())
+        if (m.getParameterCount() >= 1)
         {
-            target.send(response);
+            // preparing message
+            PlineMessage response = new PlineMessage();
+            response.setKey("command.broadcast.message", new Object[] { client.getUser().getName(), m.getText() });
+
+            Iterator clients = ClientRepository.getInstance().getClients();
+            while (clients.hasNext())
+            {
+                Client target = (Client)clients.next();
+                target.sendMessage(response);
+            }
+        }
+        else
+        {
+            // not enough parameters
+            Locale locale = client.getUser().getLocale();
+            PlineMessage response = new PlineMessage();
+            String message = "<red>" + m.getCommand() + "<blue> <" + Language.getText("command.params.message", locale) + ">";
+            response.setText(message);
+            client.sendMessage(response);
         }
     }
 

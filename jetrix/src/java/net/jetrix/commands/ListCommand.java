@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,10 +19,7 @@
 
 package net.jetrix.commands;
 
-import static net.jetrix.GameState.*;
-
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
@@ -33,46 +30,56 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class ListCommand extends AbstractCommand
+public class ListCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
-        return (new String[]{"list", "l"});
+        return (new String[] { "list", "l" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
+    }
+
+    public String getUsage(Locale locale)
+    {
+        return "/list";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.list.description", locale);
     }
 
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
         ChannelManager channelManager = ChannelManager.getInstance();
         Locale locale = client.getUser().getLocale();
-
+        
         // get the name of the channel of this player to highlight it
         String playerChannel = new String();
-        if (client.getChannel() != null) playerChannel = client.getChannel().getConfig().getName();
+        if (client.getChannel() != null) playerChannel = client.getChannel().getConfig().getName();        
 
         PlineMessage response = new PlineMessage();
-        response.setKey("command.list.header");
-        client.send(response);
+        response.setKey("command.list.header");        
+        client.sendMessage(response);
 
+        Iterator it = channelManager.channels();
         int i = 1;
-        for (Channel channel : channelManager.channels())
+        while(it.hasNext())
         {
+            Channel channel = (Channel)it.next();
             ChannelConfig conf = channel.getConfig();
 
-            // skip invisible channels
-            if (!conf.isVisible())
-            {
-                continue;
-            }
-
             String cname = conf.getName();
-            while (cname.length() < 6)
-            {
-                cname += " ";
-            }
+            while (cname.length() < 6) cname += " ";
 
-            StringBuilder message = new StringBuilder();
-            message.append("<darkBlue>(" + (playerChannel.equals(conf.getName()) ? "<red>" + i + "</red>" : "<purple>" + i + "</purple>") + ") ");
+            StringBuffer message = new StringBuffer();
+            message.append("<darkBlue>("+(playerChannel.equals(conf.getName())?"<red>"+i+"</red>":"<purple>"+i+"</purple>")+ ") ");
             message.append("<purple>" + cname + "</purple>\t");
             if (channel.isFull())
             {
@@ -84,9 +91,9 @@ public class ListCommand extends AbstractCommand
             }
             else
             {
-                message.append("[<aqua>" + Language.getText("command.list.status.open", locale) + "</aqua><blue>-" + channel.getPlayerCount() + "/" + conf.getMaxPlayers() + "</blue>]");
+                message.append("[<aqua>" + Language.getText("command.list.status.open", locale) + "</aqua><blue>-" + channel.getPlayerCount() + "/"+conf.getMaxPlayers() + "</blue>]");
             }
-            if (channel.getGameState() != STOPPED)
+            if (channel.getGameState() != Channel.GAME_STATE_STOPPED)
             {
                 message.append(" <gray>{" + Language.getText("command.list.status.ingame", locale) + "}</gray> ");
             }
@@ -98,7 +105,7 @@ public class ListCommand extends AbstractCommand
 
             PlineMessage response2 = new PlineMessage();
             response2.setText(message.toString());
-            client.send(response2);
+            client.sendMessage(response2);
 
             i = i + 1;
         }

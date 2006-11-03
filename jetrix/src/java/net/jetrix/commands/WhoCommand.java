@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,24 +30,45 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class WhoCommand extends AbstractCommand
+public class WhoCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
         return (new String[] { "who", "w", "cwho" });
     }
 
+    public int getAccessLevel()
+    {
+        return accessLevel;
+    }
+
+    public String getUsage(Locale locale)
+    {
+        return "/who";
+    }
+
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.who.description", locale);
+    }
+
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        String cmd = m.getCommand();
+        Client client = (Client)m.getSource();
         ChannelManager channelManager = ChannelManager.getInstance();
 
         PlineMessage response = new PlineMessage();
         response.setKey("command.who.header");        
-        client.send(response);
+        client.sendMessage(response);
 
-        for(Channel channel : channelManager.channels())
+        Iterator it = channelManager.channels();
+        while(it.hasNext())
         {
+            Channel channel = (Channel)it.next();
+
             // skipping empty channels
             if (channel.getPlayerCount() > 0)
             {
@@ -55,7 +76,7 @@ public class WhoCommand extends AbstractCommand
 
                 boolean isInChannel = false;
                 String channelColor = "<purple>";
-                StringBuilder message = new StringBuilder();
+                StringBuffer message = new StringBuffer();
                 message.append("[" + conf.getName() + "] <darkBlue>");
 
                 for (int i = 1; i <= 6; i++)
@@ -64,31 +85,19 @@ public class WhoCommand extends AbstractCommand
                     if (clientInChannel != null)
                     {
                         User user = clientInChannel.getUser();
-
-                        message.append(" ");
-
-                        if (user.isRegistered())
-                        {
-                            message.append("<purple>®</purple>");
-                        }
-
-                        if (user.getAccessLevel() > AccessLevel.PLAYER) message.append("<b>");
+                        if (user.getAccessLevel() > 0) message.append("<b>");
                         if (clientInChannel.getProtocol().getName().equals("tetrifast")) message.append("<i>");
-                        message.append(user.getName());
+                        message.append(" " + user.getName());
                         if (clientInChannel.getProtocol().getName().equals("tetrifast")) message.append("</i>");
-                        if (user.getAccessLevel() > AccessLevel.PLAYER) message.append("</b>");
+                        if (user.getAccessLevel() > 0) message.append("</b>");
                     }
-
-                    if (client == clientInChannel)
-                    {
-                        isInChannel = true;
-                    }
+                    if (client == clientInChannel) isInChannel = true;
                 }
 
                 if (isInChannel) channelColor = "<red>";
 
                 Message response2 = new PlineMessage(channelColor + message.toString());
-                client.send(response2);
+                client.sendMessage(response2);
             }
         }
     }

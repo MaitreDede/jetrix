@@ -3,9 +3,14 @@
 <%@ page import="java.util.*"%>
 <%@ page contentType="text/xml" %>
 
+<%
+    ChannelManager channelManager = ChannelManager.getInstance();
+    Iterator channels = channelManager.channels();    
+%>
+
 <tree>
-<%  for (Channel channel : ChannelManager.getInstance().channels()) {
-        String channelName = channel.getConfig().getName(); %>
+<%  while (channels.hasNext()) { 
+        String channelName = ((Channel) channels.next()).getConfig().getName(); %>
    <tree text="<%= channelName %>" 
          action="javascript:loadPage('channel.jsp?name=<%= channelName %>')" 
          src="navigationUsers.jsp?name=<%= channelName %>"

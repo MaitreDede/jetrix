@@ -22,18 +22,15 @@ package net.jetrix.clients;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.logging.*;
-
 import net.jetrix.*;
-import net.jetrix.protocols.TetrinetProtocol;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
 
 /**
- * Layer handling communication with a tetrinet or tetrifast client. Incomming
- * messages are turned into a server understandable format and forwarded to the
- * apropriate destination for processing (the player's channel or  the main
+ * Layer handling communication with a tetrinet or tetrifast client. Incomming 
+ * messages are turned into a server understandable format and forwarded to the 
+ * apropriate destination for processing (the player's channel or  the main 
  * server thread)
  *
  * @author Emmanuel Bourg
@@ -47,30 +44,15 @@ public class TetrinetClient implements Client
     private Channel channel;
     private User user;
     protected Date connectionTime;
-    protected long lastMessageTime;
     protected boolean disconnected;
-    private boolean running;
 
     protected Reader in;
     protected Writer out;
     protected Socket socket;
     protected ServerConfig serverConfig;
-    protected Logger log = Logger.getLogger("net.jetrix");
-    protected BlockingQueue<Message> queue;
+    protected Logger logger = Logger.getLogger("net.jetrix");
 
-    public TetrinetClient()
-    {
-        if (isAsynchronous())
-        {
-            queue = new LinkedBlockingQueue<Message>();
-        }
-    }
-
-    public TetrinetClient(User user)
-    {
-        this();
-        this.user = user;
-    }
+    public TetrinetClient() { }
 
     public TetrinetClient(User user, Socket socket)
     {
@@ -100,171 +82,111 @@ public class TetrinetClient implements Client
      */
     public void run()
     {
-        if (log.isLoggable(Level.FINE))
-        {
-            log.fine("Client started " + this);
-        }
-
-        running = true;
-
-        if (isAsynchronous())
-        {
-            // start the message sender thread
-            new MessageSender("sender-" + user.getName()).start();
-        }
-
+        logger.fine("Client started " + this);
+        
         connectionTime = new Date();
-
-        // get the server configuration if possible
+        
         Server server = Server.getInstance();
-        if (server != null)
-        {
-            serverConfig = server.getConfig();
-        }
+        if (server != null) serverConfig = server.getConfig();        
 
         try
         {
             while (!disconnected && serverConfig.isRunning())
             {
-                // fetch the next message
-                Message message = receive();
+                Message m = receiveMessage();
+                if (m == null) continue;
 
-                // discard unknown messages
-                if (message == null) continue;
-
-                if (message.getDestination() != null)
+                if (channel != null)
                 {
-                    message.getDestination().send(message);
-                }
-                else if (channel != null)
-                {
-                    // send the message to the channel assigned to this client
-                    channel.send(message);
+                    channel.sendMessage(m);
                 }
                 else
                 {
                     // no channel assigned, the message is sent to the server
-                    server.send(message);
+                    server.sendMessage(m);
                 }
             }
+
+            LeaveMessage leaveNotice = new LeaveMessage();
+            leaveNotice.setSlot(channel.getClientSlot(this));
+            leaveNotice.setName(user.getName());
+            channel.sendMessage(leaveNotice);
         }
         catch (IOException e)
         {
-            log.log(Level.SEVERE, e.getMessage(), e);
+            DisconnectedMessage m = new DisconnectedMessage();
+            m.setClient(this);
+            channel.sendMessage(m);
         }
         finally
         {
-            disconnect();
             try { in.close(); }     catch (IOException e) { e.printStackTrace(); }
             try { out.close(); }    catch (IOException e) { e.printStackTrace(); }
             try { socket.close(); } catch (IOException e) { e.printStackTrace(); }
-
-            // unregister the client from the server
             ClientRepository.getInstance().removeClient(this);
-
-            // remove the player from the channel
-            if (channel != null)
-            {
-                // todo: remove the client from all channels if it supports multiple channels (IRC clients)
-                DisconnectedMessage disconnect = new DisconnectedMessage();
-                disconnect.setClient(this);
-                channel.send(disconnect);
-            }
         }
     }
 
-    public void send(Message message)
+    public void sendMessage(Message m)
     {
-        // check the ignore list
-        if (message instanceof TextMessage)
-        {
-            Destination source = message.getSource();
-            if (source instanceof Client)
-            {
-                Client client = (Client) source;
-                if (getUser().ignores(client.getUser().getName()))
-                {
-                    if (log.isLoggable(Level.FINEST))
-                    {
-                        log.finest("Message dropped, player " + client.getUser().getName() + " ignored");
-                    }
-                    
-                    return;
-                }
-            }
-        }
-
-        if (isAsynchronous() && running)
-        {
-            // add to the queue
-            queue.add(message);
-        }
-        else
-        {
-            // write directly
-            write(message);
-        }
-    }
-
-    /**
-     * Write the message on the output stream.
-     */
-    private void write(Message message)
-    {
-        String rawMessage = message.getRawMessage(getProtocol(), user.getLocale());
-
+        String rawMessage = m.getRawMessage(getProtocol(), user.getLocale());
+        
         if (rawMessage != null)
         {
             try
             {
-                synchronized (out)
+                synchronized(out)
                 {
-                    out.write(rawMessage + getProtocol().getEOL(), 0, rawMessage.length() + 1);
+                    out.write(rawMessage + (char)255, 0, rawMessage.length() + 1);
                     out.flush();
                 }
 
-                if (log.isLoggable(Level.FINEST))
-                {
-                    log.finest("> " + rawMessage);
-                }
+                logger.finest("> " + rawMessage);
             }
-            catch (SocketException e)
-            {
-                if (log.isLoggable(Level.FINE))
-                {
-                    log.fine(e.getMessage());
-                }
-            }
-            catch (Exception e)
-            {
-                log.log(Level.INFO, getUser().toString(), e);
-            }
+            catch (SocketException e) { logger.fine(e.getMessage()); }
+            catch (Exception e) { e.printStackTrace(); }
         }
         else
         {
-            log.warning("Message not sent, raw message missing " + message);
+            logger.warning("Message not sent, raw message missing " + m);
         }
     }
 
-    public Message receive() throws IOException
+    public Message receiveMessage() throws IOException
     {
         // read raw message from socket
-        String line = ((TetrinetProtocol) protocol).readLine(in);
-        lastMessageTime = System.currentTimeMillis();
-        if (log.isLoggable(Level.FINER))
-        {
-            log.finer("RECV: " + line);
-        }
+        String s = readLine();
+        logger.finer("RECV: " + s);
 
         // build server message
-        Message message = getProtocol().getMessage(line);
-        //message.setRawMessage(getProtocol(), line);
-        if (message != null)
+        Message m = getProtocol().getMessage(s);
+        //m.setRawMessage(getProtocol(), s);
+        if (m != null) m.setSource(this);
+
+        return m;
+    }
+
+    /**
+     * Read a line sent by the tetrinet client.
+     *
+     * @return line sent
+     */
+    public String readLine() throws IOException
+    {
+        int readChar;
+        StringBuffer input = new StringBuffer();
+
+        while ((readChar = in.read()) != -1 && readChar != 0xFF && readChar != 0x0A && readChar != 0x0D)
         {
-            message.setSource(this);
+            if (readChar != 0x0A && readChar != 0x0D)
+            {
+                input.append((char)readChar);
+            }
         }
 
-        return message;
+        if (readChar == -1) throw new IOException("client disconnected");
+
+        return input.toString();
     }
 
     public void setSocket(Socket socket)
@@ -272,13 +194,10 @@ public class TetrinetClient implements Client
         this.socket = socket;
         try
         {
-            in  = new BufferedReader(new InputStreamReader(socket.getInputStream(), ServerConfig.ENCODING));
-            out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), ServerConfig.ENCODING));
+            in  = new BufferedReader(new InputStreamReader(socket.getInputStream(), "ISO-8859-1"));
+            out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "ISO-8859-1"));
         }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        catch(IOException e) { e.printStackTrace(); }
     }
 
     public Socket getSocket()
@@ -299,16 +218,6 @@ public class TetrinetClient implements Client
     public Channel getChannel()
     {
         return channel;
-    }
-
-    public boolean supportsMultipleChannels()
-    {
-        return false;
-    }
-
-    public boolean supportsAutoJoin()
-    {
-        return true;
     }
 
     public void setUser(User user)
@@ -346,103 +255,15 @@ public class TetrinetClient implements Client
         return connectionTime;
     }
 
-    public long getIdleTime()
-    {
-        return System.currentTimeMillis() - lastMessageTime;
-    }
-
     public void disconnect()
     {
         disconnected = true;
-
-        // notify the message sender thread
-        if (queue != null)
-        {
-            queue.add(new ShutdownMessage());
-        }
-
-        try
-        {
-            socket.shutdownOutput();
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Tells if the messages are sent asynchroneously to the client.
-     *
-     * @since 0.2
-     */
-    protected boolean isAsynchronous()
-    {
-        return true;
+        try { socket.shutdownOutput(); } catch(Exception e) { e.printStackTrace(); }
     }
 
     public String toString()
     {
         return "[Client " + getInetAddress() + " type=" + type + "]";
-    }
-
-    /**
-     * A thread sending the message to the client asynchroneously.
-     *
-     * @since 0.2
-     */
-    private class MessageSender extends Thread
-    {
-        private int index;
-        private long timestamp[];
-        private int capacity = 10;
-        private int delay = 100;
-
-        public MessageSender(String name)
-        {
-            super(name);
-
-            timestamp = new long[capacity];
-        }
-
-        public void run()
-        {
-            while (!disconnected)
-            {
-                try
-                {
-                    // take the message
-                    Message message = queue.take();
-
-                    if (disconnected)
-                    {
-                        return;
-                    }
-
-                    // delay
-                    if (isRateExceeded(System.currentTimeMillis()))
-                    {
-                        sleep(10);
-                    }
-
-                    // write the message
-                    write(message);
-                }
-                catch (InterruptedException e)
-                {
-                    log.log(Level.WARNING, e.getMessage(), e);
-                }
-            }
-        }
-
-        private boolean isRateExceeded(long t)
-        {
-            long t1 = timestamp[index];
-            timestamp[index] = t;
-            index = (index + 1) % capacity;
-
-            return (t - t1) < delay;
-        }
     }
 
 }

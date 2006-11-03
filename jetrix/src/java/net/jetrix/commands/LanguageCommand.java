@@ -1,6 +1,6 @@
 /**
  * Jetrix TetriNET Server
- * Copyright (C) 2001-2004  Emmanuel Bourg
+ * Copyright (C) 2001-2003  Emmanuel Bourg
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +20,6 @@
 package net.jetrix.commands;
 
 import java.util.*;
-
 import net.jetrix.*;
 import net.jetrix.messages.*;
 
@@ -30,11 +29,18 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class LanguageCommand extends AbstractCommand
+public class LanguageCommand implements Command
 {
+    private int accessLevel = 0;
+
     public String[] getAliases()
     {
-        return (new String[]{"language", "lang"});
+        return (new String[] { "language", "lang" });
+    }
+
+    public int getAccessLevel()
+    {
+        return accessLevel;
     }
 
     public String getUsage(Locale locale)
@@ -42,45 +48,42 @@ public class LanguageCommand extends AbstractCommand
         return "/language <" + Language.getText("command.params.lancode", locale) + ">";
     }
 
+    public String getDescription(Locale locale)
+    {
+        return Language.getText("command.language.description", locale);
+    }
+
     public void execute(CommandMessage m)
     {
-        Client client = (Client) m.getSource();
+        Client client = (Client)m.getSource();
 
         if (m.getParameterCount() >= 1)
         {
-            // read the specified locale
             String language = m.getParameter(0);
-            Locale locale = new Locale(language);
+            Locale l = new Locale(language);
 
-            if (Language.isSupported(locale))
+            if (Language.isSupported(l))
             {
-                // change the locale
-                client.getUser().setLocale(locale);
+                client.getUser().setLocale(l);
 
                 PlineMessage response = new PlineMessage();
-                response.setKey("command.language.changed", locale.getDisplayLanguage(locale));
-                client.send(response);
+                response.setKey("command.language.changed", new Object[] { l.getDisplayLanguage(l) });
+                client.sendMessage(response);
             }
             else
             {
+                client.getUser().setLocale(l);
                 PlineMessage response = new PlineMessage();
                 response.setKey("command.language.not_supported");
-                client.send(response);
+                client.sendMessage(response);
             }
         }
         else
         {
-            // list all available locales
-            PlineMessage header = new PlineMessage();
-            header.setKey("command.language.available");
-            client.send(header);
-
-            for (Locale locale : Language.getLocales())
-            {
-                PlineMessage line = new PlineMessage();
-                line.setKey("command.language.list_format", locale.getLanguage(), locale.getDisplayLanguage(client.getUser().getLocale()));
-                client.send(line);
-            }
+            // not enough parameters
+            String message = "<red>" + m.getCommand() + "<blue> <lancode>";
+            PlineMessage response = new PlineMessage(message);
+            client.sendMessage(response);
         }
     }
 
