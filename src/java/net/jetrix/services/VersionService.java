@@ -19,16 +19,11 @@
 
 package net.jetrix.services;
 
-import java.awt.TrayIcon;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.logging.Level;
-
-import net.jetrix.SystrayManager;
 import net.jetrix.config.ServerConfig;
+
+import java.net.*;
+import java.io.*;
+import java.util.logging.*;
 
 /**
  * Service checking the availability of a new release.
@@ -60,9 +55,7 @@ public class VersionService extends CronService
 
         if (isNewVersionAvailable())
         {
-            String message = "A new version is available (" + VersionService.getLatestVersion() + "), download it on http://jetrix.sf.net now!";
-            log.warning(message);
-            SystrayManager.notify(message, TrayIcon.MessageType.INFO);
+            log.warning("A new version is available (" + VersionService.getLatestVersion() + "), download it on http://jetrix.sf.net now!");
         }
     }
 

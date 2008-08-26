@@ -22,7 +22,7 @@ package net.jetrix.clients;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 import net.jetrix.*;
 import net.jetrix.protocols.*;
@@ -36,7 +36,7 @@ import net.jetrix.config.*;
  */
 public class ConsoleClient implements Client
 {
-    private Console console = System.console();
+    private BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
     private ServerConfig conf;
     private Protocol protocol;
     private User user;
@@ -62,17 +62,11 @@ public class ConsoleClient implements Client
 
     public void run()
     {
-        if (console == null)
-        {
-            log.info("Console interface unavailable");
-            return;
-        }
-
         while (conf.isRunning() && !closed)
         {
             try
             {
-                Message message = receive();
+                Message message = receiveMessage();
 
                 if (message != null)
                 {
@@ -81,7 +75,8 @@ public class ConsoleClient implements Client
             }
             catch (Exception e)
             {
-                e.printStackTrace();
+                log.log(Level.SEVERE, e.getMessage(), e);
+                closed = true;
             }
         }
 
@@ -94,25 +89,19 @@ public class ConsoleClient implements Client
     public void send(Message message)
     {
         String msg = protocol.translate(message, user.getLocale());
-        if (msg != null)
-        {
-            console.writer().println(msg);
-        }
+        if (msg != null) System.out.println(msg);
     }
 
-    public Message receive() throws IOException
+    public Message receiveMessage() throws IOException
     {
-        String line = console.readLine();
+        String line = in.readLine();
         if (line == null)
         {
             closed = true;
         }
 
         Message message = protocol.getMessage(line);
-        if (message != null)
-        {
-            message.setSource(this);
-        }
+        if (message != null) message.setSource(this);
 
         return message;
     }
@@ -137,8 +126,7 @@ public class ConsoleClient implements Client
         return false;
     }
 
-    public boolean supportsAutoJoin()
-    {
+    public boolean supportsAutoJoin() {
         return true;
     }
 

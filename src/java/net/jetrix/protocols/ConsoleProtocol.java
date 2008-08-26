@@ -29,7 +29,7 @@ import net.jetrix.messages.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class ConsoleProtocol extends AbstractProtocol
+public class ConsoleProtocol implements Protocol
 {
     private static Map<String, String> styles = new HashMap<String, String>();
 
@@ -107,7 +107,7 @@ public class ConsoleProtocol extends AbstractProtocol
 
     public String translate(TextMessage m, Locale locale)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append(applyStyle(m.getText(locale)));
         return message.toString();
     }
@@ -136,6 +136,11 @@ public class ConsoleProtocol extends AbstractProtocol
     public char getEOL()
     {
         return '\n';
+    }
+
+    public String toString()
+    {
+        return "[Protocol name=" + getName() + "]";
     }
 
 }

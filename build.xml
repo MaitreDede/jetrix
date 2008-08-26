@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <project name="Jetrix TetriNET Server" default="dist" basedir=".">
 
-  <taskdef name="pack200" classname="com.sun.tools.apache.ant.pack200.Pack200Task" classpath="lib/Pack200Task.jar"/>
-
   <property name="compile.debug"    value="true"/>
   <property name="compile.optimize" value="false"/>
   <property name="src"     value="src"/>
@@ -45,7 +43,7 @@
 
   <target name="compile" depends="prepare">
     <!-- Compile the java code from ${src} into ${build} -->
-    <javac srcdir="${build}/java" destdir="${build}/classes" debug="${compile.debug}" optimize="${compile.optimize}">
+    <javac srcdir="${build}/java" destdir="${build}/classes" debug="${compile.debug}" optimize="${compile.optimize}" source="1.5" target="1.5">
       <classpath>
         <path refid="classpath.main"/>
       </classpath>
@@ -61,7 +59,7 @@
 
   <target name="compile.servlet" depends="compile" description="Compile the Servlets">
     <mkdir dir="${build}/jsp"/>
-    <javac destdir="${build}/jsp" debug="yes">
+    <javac destdir="${build}/jsp" debug="yes" source="1.5" target="1.5">
       <classpath>
         <pathelement path="${build}/classes/"/>
         <path refid="classpath.main"/>
@@ -78,7 +76,7 @@
         <pathelement location="${ant.home}/lib/ant.jar"/>
       </classpath>
     </jspc>
-    <javac destdir="${build}/jsp" debug="yes">
+    <javac destdir="${build}/jsp" debug="yes" source="1.5" target="1.5">
       <classpath>
         <pathelement path="${build}/classes/"/>
         <path refid="classpath.main"/>
@@ -106,9 +104,12 @@
         <include name="tetrinet-channels.dtd"/>
       </fileset>
       <fileset dir="${src}/etc/icons">
-        <include name="jetrix-16x16.png"/>
+        <include name="jetrix.ico"/>
       </fileset>
     </jar>
+
+    <!-- Check if the packed JAR is up to date -->
+    <uptodate property="jar.pack.notRequired" srcfile="${dist}/lib/jetrix-${version}.jar" targetfile="${dist}/lib/jetrix-${version}.pack"/>
 
     <!-- Create the Launcher JAR -->
     <jar jarfile="${dist}/lib/jetrix-launcher-${version}.jar" compress="false">
@@ -136,32 +137,45 @@
     </war>
   </target>
 
-  <target name="pack" depends="jar" description="Pack the dependencies to reduce the distribution size">
+  <target name="jar.pack" depends="jar" unless="jar.pack.notRequired" description="Pack the Jetrix JAR if necessary">
+    <echo message="Packing jetrix-${version}.jar"/>
+    <exec executable="pack200" dir="${dist}/lib">
+      <arg line="-g jetrix-${version}.pack jetrix-${version}.jar"/>
+    </exec>
+  </target>
+
+  <target name="pack" description="Pack the dependency to reduce the distribution size">
     <!-- Copy the JARs -->
     <copy todir="${build}/lib">
       <fileset dir="${lib}" includes="*"/>
     </copy>
 
-    <!-- Pack the main JAR and the WAR for the administration console -->
-    <pack200 src="${dist}/lib/jetrix-${version}.jar" destfile="${dist}/lib/jetrix-${version}.jar.pack" gzipoutput="false" stripdebug="false" keepfileorder="false"/>
-    <pack200 src="${dist}/webapp/jetrix-admin-${version}.war" destfile="${dist}/webapp/jetrix-admin-${version}.war.pack" gzipoutput="false" stripdebug="false" keepfileorder="false"/>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="commons-digester"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="commons-collections"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="commons-beanutils"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="commons-lang-2.0-light"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="jetty"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="servlet-light"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="jasper-runtime"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="jcrontab-1.4.1-light"/></antcall>
+    <antcall target="pack.check" inheritAll="true"><param name="library" value="systray4j-2.4.1"/></antcall>
 
-    <!-- Pack the dependencies -->
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="commons-digester"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="commons-collections"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="commons-beanutils"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="commons-lang-2.0-light"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="jetty"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="servlet-light"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="jasper-runtime"/></antcall>
-    <antcall target="pack.lib" inheritAll="true"><param name="library" value="jcrontab-1.4.1-light"/></antcall>
   </target>
 
-  <target name="pack.lib" description="Pack the library specified by the ${library} property">
-    <pack200 src="${build}/lib/${library}.jar" destfile="${build}/lib/${library}.jar.pack" gzipoutput="false" stripdebug="true" keepfileorder="false"/>
+  <target name="pack.check">
+    <!-- Check if the existing packed JARs are up to date -->
+    <uptodate property="pack.notRequired" srcfile="${build}/lib/${library}.jar" targetfile="${build}/lib/${library}.pack"/>
+    <antcall target="pack.pack" inheritAll="true"/>
   </target>
 
-  <target name="dist" depends="pack">
+  <target name="pack.pack" unless="pack.notRequired">
+    <echo message="Packing ${library}.jar" />
+    <exec executable="pack200" dir="${build}/lib">
+      <arg line="-g -G ${library}.pack ${library}.jar"/>
+    </exec>
+  </target>
+
+  <target name="dist" depends="jar.pack, pack">
 
     <!-- Replace the tokens in the scripts -->
     <mkdir dir="${build}/bin"/>
@@ -183,7 +197,6 @@
         <include name="README" />
         <include name="server.xml" />
         <include name="channels.xml" />
-        <include name="data/**" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}/" dir="${build}/bin/">
         <include name="jetrix.bat" />
@@ -194,7 +207,7 @@
         <include name="update" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}/lib/" dir="${dist}/lib/">
-        <include name="jetrix-${version}.jar.pack" />
+        <include name="jetrix-${version}.pack" />
         <include name="jetrix-launcher-${version}.jar" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}/lib/" dir="${build}/lib">
@@ -202,13 +215,15 @@
         <include name="commons-collections*.pack" />
         <include name="commons-beanutils*.pack" />
         <include name="commons-lang*.pack" />
-        <include name="jetty*.pack"/>
-        <include name="servlet-light*.pack"/>
-        <include name="jasper-runtime*.pack"/>
+        <include name="jetty.pack"/>
+        <include name="servlet-light.pack"/>
+        <include name="jasper-runtime.pack"/>
         <include name="jcrontab*.pack"/>
+        <include name="systray4j*.pack" />
+        <include name="systray4j*.dll" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}/lib/" dir="${dist}/webapp/">
-        <include name="*.war.pack" />
+        <include name="*.war" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}/lang/" dir="${src}/lang/">
         <include name="*.properties" />
@@ -223,7 +238,6 @@
         <include name="README" />
         <include name="server.xml" />
         <include name="channels.xml" />
-        <include name="data/**" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}/" dir="${build}/bin/">
         <include name="jetrix.bat" />
@@ -234,7 +248,7 @@
         <include name="update" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}/lib/" dir="${dist}/lib/">
-        <include name="jetrix-${version}.jar.pack" />
+        <include name="jetrix-${version}.pack" />
         <include name="jetrix-launcher-${version}.jar" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}/lib/" dir="${build}/lib">
@@ -242,13 +256,14 @@
         <include name="commons-collections*.pack" />
         <include name="commons-beanutils*.pack" />
         <include name="commons-lang*.pack" />
-        <include name="jetty*.pack"/>
-        <include name="servlet-light*.pack"/>
-        <include name="jasper-runtime*.pack"/>
+        <include name="jetty.pack"/>
+        <include name="servlet-light.pack"/>
+        <include name="jasper-runtime.pack"/>
         <include name="jcrontab*.pack"/>
+        <include name="systray4j*.pack" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}/lib/" dir="${dist}/webapp/">
-        <include name="*.war.pack" />
+        <include name="*.war" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}/lang/" dir="${src}/lang/">
         <include name="*.properties" />
@@ -261,23 +276,7 @@
 
   </target>
 
-  <target name="dist.linux" depends="dist" description="Build the Linux installer">
-    <mkdir dir="${build}/control"/>
-    <copy todir="${build}/control" filtering="true" >
-      <fileset dir="${src}/etc/control"/>
-    </copy>
-    
-    <taskdef name="deb" classname="org.vafer.jdeb.ant.DebAntTask" classpath="lib/jdeb-0.7-SNAPSHOT.jar"/>
-
-    <deb destfile="${dist}/bin/jetrix-${version}.deb" control="${build}/control" compression="bzip2">
-      <data src="${dist}/bin/jetrix-${version}.tar.bz2">
-        <mapper type="prefix" strip="1" prefix="/usr/share/jetrix"/>
-        <exclude name="*.bat"/>
-      </data>
-    </deb>
-  </target>
-
-  <target name="dist.win" depends="deploy" description="Build the Windows installer">
+  <target name="dist.win" depends="deploy" description="Build the windows installer">
 
     <!-- Build the windows executable file jetrix.exe -->
     <mkdir dir="${build}/bin"/>
@@ -306,8 +305,8 @@
     <zip zipfile="${dist}/src/jetrix-${version}-src.zip">
       <zipfileset prefix="jetrix-${version}-src/" dir=".">
         <include name="build.xml" />
-        <include name="project.xml" />
-        <include name="project.properties" />
+        <include name="build.properties.sample" />
+        <include name="jetrix.properties" />
       </zipfileset>
       <zipfileset prefix="jetrix-${version}-src/src/" dir="${src}">
         <exclude name="site/"/>
@@ -318,8 +317,8 @@
     <tar destfile="${dist}/src/jetrix-${version}-src.tar">
       <tarfileset prefix="jetrix-${version}-src/" dir=".">
         <include name="build.xml" />
-        <include name="project.xml" />
-        <include name="project.properties" />
+        <include name="build.properties.sample" />
+        <include name="jetrix.properties" />
       </tarfileset>
       <tarfileset prefix="jetrix-${version}-src/src/" dir="${src}">
         <exclude name="site/"/>
@@ -332,7 +331,7 @@
 
   </target>
 
-  <target name="dist.all" depends="clean, dist, dist.src, dist.win, dist.linux" description="Build all distributed files"/>
+  <target name="dist.all" depends="clean, dist, dist.src, dist.win" description="Build all distributed files"/>
 
   <target name="deploy" depends="dist">
     <delete dir="${deploy}"/>
@@ -343,6 +342,7 @@
   <target name="run" depends="deploy">
     <java dir="${deploy}/jetrix-${version}" jar="${deploy}/jetrix-${version}/lib/jetrix-launcher-${version}.jar" fork="true">
       <sysproperty key="jetrix.debug" value="true"/>
+      <sysproperty key="java.library.path" value="lib"/>
     </java>
   </target>
 
@@ -353,69 +353,12 @@
     <unzip src="${dist}/bin/jetrix-${version}.zip" dest="${deploy}" />
 
     <!-- Checksum computation -->
-    <java classname="net.jetrix.tools.patcher.UpdateList" dir="${deploy}/jetrix-${version}" classpath="${deploy}/jetrix-${version}/lib/jetrix-${version}.jar" fork="yes" />
+    <java classname="net.jetrix.tools.patcher.UpdateList" dir="${deploy}/jetrix-${version}" classpath="${build}/classes" fork="yes" />
 
     <!-- Uploading to patch server -->
     <ftp server="${ftp.host}" remotedir="/vsite/tetrinet/public_html/jetrix/autoupdate" userid="${ftp.login}" password="${ftp.pass}" depends="yes" verbose="yes" ignoreNoncriticalErrors="yes">
       <fileset dir="${deploy}/jetrix-${version}"/>
     </ftp>
-  </target>
-  
-  <target name="site" description="Generate and publish the web site to SourceForge">
-    <!-- Create the site distribution directory -->
-    <mkdir dir="${dist}/site/docs"/>
-
-    <!-- Build the project reports -->
-    <property environment="env"/>
-    <exec executable="${env.MAVEN2_HOME}/bin/mvn.bat">
-      <arg line="site"/>
-    </exec>
-
-    <!-- Copy the project reports -->
-    <copy todir="${dist}/site/docs">
-      <fileset dir="target/site"/>
-    </copy>
-
-    <!-- Copy the site -->
-    <property file="project.properties"/>
-    <filter token="version.stable" value="${version.stable}"/>
-    <filter token="version" value="${version}"/>
-    <copy todir="${dist}/site" filtering="true" overwrite="true">
-      <fileset dir="src/site">
-        <exclude name="**/*.png"/>
-        <exclude name="**/*.ico"/>
-      </fileset>
-    </copy>
-    <copy todir="${dist}/site" overwrite="true">
-      <fileset dir="src/site">
-        <include name="**/*.png"/>
-        <include name="**/*.ico"/>
-      </fileset>
-    </copy>
-
-    <!-- Update the news from the RSS feed -->
-    <get src="http://sourceforge.net/export/rss2_projnews.php?group_id=52188&amp;rss_fulltext=1"
-         dest="${dist}/site/jetrix-rss.xml"/>
-    <xslt in="${dist}/site/jetrix-rss.xml" out="${dist}/site//news.html" style="src/site/jetrix-rss.xsl"/>
-    <replace file="${dist}/site/news.html">
-      <replacefilter token="&amp;gt;" value="&gt;"/>
-      <replacefilter token="&amp;lt;" value="&lt;"/>
-      <replacefilter token="&lt;br&gt;" value="&lt;br /&gt;"/>
-    </replace>
-    <replaceregexp file="${dist}/site/news.html" byline="true">
-      <regexp pattern="\(&lt;a href=.*comments&lt;/a&gt;\)"/>
-      <substitution expression=" "/>
-    </replaceregexp>
-
-    <tar destfile="${dist}/site.tar.bz2" compression="bzip2">
-      <tarfileset dir="${dist}/site"/>
-    </tar>
-
-    <input addproperty="password" message="Password:"/>
-
-    <scp file="${dist}/site.tar.bz2" todir="smanux:${password}@shell.sf.net:/home/users/s/sm/smanux" trust="true"/>
-
-    <sshexec host="shell.sf.net" username="smanux" password="${password}" trust="true" command="tar -jxf site.tar.bz2 --directory=/home/groups/j/je/jetrix/htdocs "/>
   </target>
 
   <target name="clean">

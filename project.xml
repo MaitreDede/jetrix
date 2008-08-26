@@ -32,9 +32,8 @@
   <siteDirectory>/home/groups/j/je/jetrix/htdocs/docs/</siteDirectory>
 
   <repository>
-    <connection>scm:svn:https://jetrix.svn.sourceforge.net/svnroot/jetrix/jetrix/trunk/</connection>
-    <developerConnection>scm:svn:https://jetrix.svn.sourceforge.net/svnroot/jetrix/jetrix/trunk/</developerConnection>
-    <url>http://jetrix.svn.sourceforge.net/viewvc/jetrix/</url>
+    <connection>scm:cvs:pserver:anonymous@cvs1.sourceforge.net:/cvsroot/jetrix:jetrix</connection>
+    <url>http://cvs.sourceforge.net/viewcvs.py/jetrix/jetrix/</url>
   </repository>
 
   <versions>
@@ -62,7 +61,7 @@
 
   <mailingLists>
     <mailingList>
-      <name>Jetrix Commits</name>
+      <name>Jetrix CVS List</name>
       <subscribe>http://lists.sourceforge.net/lists/listinfo/jetrix-cvs</subscribe>
       <unsubscribe>http://lists.sourceforge.net/lists/listinfo/jetrix-cvs</unsubscribe>
       <archive>https://sourceforge.net/mailarchive/forum.php?forum_id=12998</archive>
@@ -148,17 +147,22 @@
 
     <dependency>
       <id>commons-beanutils</id>
-      <version>1.7.0</version>
+      <version>1.7-dev</version>
     </dependency>
 
     <dependency>
-      <id>jetty</id>
-      <version>4.1-rc1</version>
+        <id>jetty</id>
+        <version>4.1-rc1</version>
     </dependency>
 
     <dependency>
-      <id>jcrontab</id>
-      <version>1.4.1</version>
+        <id>jcrontab</id>
+        <version>1.4.1</version>
+    </dependency>
+
+    <dependency>
+        <id>systray4j</id>
+        <version>2.4.1</version>
     </dependency>
 
     <!-- Needed for testing -->
@@ -195,14 +199,6 @@
             <include>*.properties</include>
           </includes>
         </resource>
-        <resource>
-          <directory>src/etc/data/puzzle</directory>
-          <targetPath>/data/puzzle</targetPath>
-          <includes>
-            <include>*.field</include>
-            <include>*.settings</include>
-          </includes>
-        </resource>
       </resources>
     </unitTest>
 
@@ -214,7 +210,7 @@
     <report>maven-javadoc-plugin</report>
     <!--<report>maven-jxr-plugin</report>-->
     <report>maven-junit-report-plugin</report>
-    <!--<report>maven-clover-plugin</report>-->
+    <report>maven-clover-plugin</report>
     <!--<report>maven-checkstyle-plugin</report>-->
     <report>maven-pmd-plugin</report>
     <report>maven-simian-plugin</report>

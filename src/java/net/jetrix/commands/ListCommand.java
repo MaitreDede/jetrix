@@ -59,19 +59,13 @@ public class ListCommand extends AbstractCommand
         {
             ChannelConfig conf = channel.getConfig();
 
-            // skip invisible channels
-            if (!conf.isVisible())
-            {
-                continue;
-            }
-
             String cname = conf.getName();
             while (cname.length() < 6)
             {
                 cname += " ";
             }
 
-            StringBuilder message = new StringBuilder();
+            StringBuffer message = new StringBuffer();
             message.append("<darkBlue>(" + (playerChannel.equals(conf.getName()) ? "<red>" + i + "</red>" : "<purple>" + i + "</purple>") + ") ");
             message.append("<purple>" + cname + "</purple>\t");
             if (channel.isFull())

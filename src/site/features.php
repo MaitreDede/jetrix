@@ -1,5 +1,11 @@
 <? include("header.inc.php") ?>
 
+<style type="text/css">
+.done    { list-style-image: url("images/done.png") }
+.planned { list-style-image: url("images/planned.png") }
+.partial { list-style-image: url("images/partial.png") }
+</style>
+
 <h1>Features</h1>
 
 <b>Legend:</b>
@@ -36,7 +42,6 @@
   <li class="done"> TetriFast clients</li>
   <li class="done"> Block synchronization protocol (1.14)</li>
   <li class="done"> TSpec clients</li>
-  <!--<li class="planned"> Flash clients</li>-->
   <li class="done"> Query protocol</li>
   <li class="partial"> IRC clients</li>
 </ul>
@@ -49,8 +54,6 @@
   <li class="planned"> game recording and playback</li>
   <li class="done"> multiplayer "7Tetris" channel</li>
   <li class="planned"> puzzle channels</li>
-  <li class="done"> survival channel</li>
-  <li class="planned"> quick channel</li>
   <li class="planned"> "all around" channel</li>
   <li class="done"> sudden death</li>
 </ul>
@@ -79,7 +82,7 @@
 <ul>
   <li class="partial"> web administration console</li>
   <li class="done"> XML based configuration files</li>
-  <li class="partial"> hot reconfiguration (no server restart needed)</li>
+  <li class="planned"> hot reconfiguration (no server restart needed)</li>
   <li class="partial"> administration from the system shell</li>
 </ul>
 
@@ -117,7 +120,7 @@
 <h2>Misc</h2>
 
 <ul>
-  <li class="done"> automatic advertisement to server directories (tetrinet.org, tsrv.com)</li>
+  <li class="done"> automatic advertisement to server directories (tfast.org, tetrinet.org, tsrv.com)</li>
   <li class="partial"> automatic update</li>
   <li class="done"> notification of new versions</li>
   <li class="planned"> run as a service on Windows</li>

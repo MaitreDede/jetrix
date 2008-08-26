@@ -19,27 +19,16 @@
 
 package net.jetrix.agent;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.net.InetSocketAddress;
+import net.jetrix.protocols.QueryProtocol;
+import net.jetrix.Message;
+
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import net.jetrix.Message;
-import net.jetrix.protocols.QueryProtocol;
 
 /**
- * Agent performing query requests on a TetriNET server.
  *
- * @see <a href="See http://jetrix.sourceforge.net/dev-guide.php#section2-4">Query Protocol Documentation</a>
  *
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
@@ -51,15 +40,12 @@ public class QueryAgent implements Agent
     private BufferedReader in;
     private Writer out;
 
-    private Logger log = Logger.getLogger("net.jetrix");
-
     public void connect(String hostname) throws IOException
     {
         this.hostname = hostname;
-        socket = new Socket();
-        socket.connect(new InetSocketAddress(hostname, 31457), 5000);
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "ISO-8859-1"));
-        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "ISO-8859-1"));
+        socket = new Socket(hostname, 31457);
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         socket.setSoTimeout(10000);
     }
 
@@ -142,9 +128,6 @@ public class QueryAgent implements Agent
 
     public List<ChannelInfo> getChannels() throws IOException
     {
-        // prepare the pattern matcher
-        Pattern pattern = Pattern.compile("\"(.*)\" \"(.*)\" ([0-9]+) ([0-9]+) ([0-9]+|N/A) ([0-9]+)");
-
         // send the command
         send("listchan");
 
@@ -152,32 +135,19 @@ public class QueryAgent implements Agent
 
         // read the result
         String line = null;
-        QueryProtocol protocol = new QueryProtocol();
-        while (!QueryProtocol.OK.equals(line = protocol.readLine(in)))
+        while (!(line = in.readLine()).equals(QueryProtocol.OK))
         {
-            Matcher matcher = pattern.matcher(line);
+            List<String> tokens = parseQuotedTokens(line);
 
-            if (matcher.matches())
-            {
-                int i = 1;
-                ChannelInfo channel = new ChannelInfo();
-                channel.setName(matcher.group(i++));
-                channel.setDescription(matcher.group(i++));
-                channel.setPlayernum(Integer.parseInt(matcher.group(i++)));
-                channel.setPlayermax(Integer.parseInt(matcher.group(i++)));
-                String priority = matcher.group(i++);
-                if (!"N/A".equals(priority))
-                {
-                    channel.setPriority(Integer.parseInt(priority));
-                }
-                channel.setStatus(Integer.parseInt(matcher.group(i++)));
+            ChannelInfo channel = new ChannelInfo();
+            channel.setName(tokens.get(0));
+            channel.setDescription(tokens.get(1));
+            channel.setPlayernum(Integer.parseInt(tokens.get(2)));
+            channel.setPlayermax(Integer.parseInt(tokens.get(3)));
+            channel.setPriority(Integer.parseInt(tokens.get(4)));
+            channel.setStatus(Integer.parseInt(tokens.get(5)));
 
-                channels.add(channel);
-            }
-            else
-            {
-                log.warning("Invalid response for the listchan message (" + hostname + ") : " + line);
-            }
+            channels.add(channel);
         }
 
         return channels;
@@ -185,9 +155,6 @@ public class QueryAgent implements Agent
 
     public List<PlayerInfo> getPlayers() throws IOException
     {
-        // prepare the pattern matcher
-        Pattern pattern = Pattern.compile("\"(.*)\" \"(.*)\" \"(.*)\" ([0-9]+) ([0-9]+) ([0-9]+) \"(.*)\"");
-
         // send the command
         send("listuser");
 
@@ -195,42 +162,83 @@ public class QueryAgent implements Agent
 
         // read the result
         String line = null;
-        QueryProtocol protocol = new QueryProtocol();
-        while (!QueryProtocol.OK.equals(line = protocol.readLine(in)))
+        while (!(line = in.readLine()).equals(QueryProtocol.OK))
         {
-            Matcher matcher = pattern.matcher(line);
+            List<String> tokens = parseQuotedTokens(line);
 
-            if (matcher.matches())
-            {
-                int i = 1;
-                PlayerInfo player = new PlayerInfo();
-                player.setNick(matcher.group(i++));
-                player.setTeam(matcher.group(i++));
-                player.setVersion(matcher.group(i++));
-                player.setSlot(Integer.parseInt(matcher.group(i++)));
-                player.setStatus(Integer.parseInt(matcher.group(i++)));
-                player.setAuthenticationLevel(Integer.parseInt(matcher.group(i++)));
-                player.setChannel(matcher.group(i++));
+            PlayerInfo player = new PlayerInfo();
+            player.setNick(tokens.get(0));
+            player.setTeam(tokens.get(1));
+            player.setVersion(tokens.get(2));
+            player.setSlot(Integer.parseInt(tokens.get(3)));
+            player.setStatus(Integer.parseInt(tokens.get(4)));
+            player.setAuthenticationLevel(Integer.parseInt(tokens.get(5)));
+            player.setChannel(tokens.get(6));
 
-                players.add(player);
-            }
-            else
-            {
-                log.warning("Invalid response for the listuser message (" + hostname + ") : " + line);
-            }
+            players.add(player);
         }
 
         return players;
     }
 
     /**
-     * Return the round trip time to the server in milliseconds.
+     * Return the ping time to the server in milliseconds.
      */
-    public int getPing() throws IOException
+    public long getPing() throws IOException
     {
         long time = System.currentTimeMillis();
         getVersion();
-        return (int) (System.currentTimeMillis() - time);
+        return (System.currentTimeMillis() - time) / 2;
     }
 
+    List<String> parseQuotedTokens(String s)
+    {
+        List<String> tokens = new ArrayList<String>();
+
+        if (s == null)
+        {
+            return new ArrayList<String>();
+        }
+
+        StringBuffer token = new StringBuffer();
+        boolean quote = false;
+
+        for (int i = 0; i < s.length(); i++)
+        {
+            char c = s.charAt(i);
+
+            if (c == '"')
+            {
+                if (quote)
+                {
+                    tokens.add(token.toString());
+                    token = new StringBuffer();
+                }
+
+                quote = !quote;
+            }
+            else if (c == ' ')
+            {
+                if (quote)
+                {
+                    token.append(c);
+                }
+                else if (token.length() > 0)
+                {
+                    tokens.add(token.toString());
+                    token = new StringBuffer();
+                }
+            }
+            else
+            {
+                token.append(c);
+                if (i == s.length() - 1)
+                {
+                    tokens.add(token.toString());
+                }
+            }
+        }
+
+        return tokens;
+    }
 }

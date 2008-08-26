@@ -26,7 +26,7 @@ import java.util.concurrent.*;
 import java.util.logging.*;
 
 import net.jetrix.*;
-import net.jetrix.protocols.AbstractProtocol;
+import net.jetrix.protocols.TetrinetProtocol;
 import net.jetrix.config.*;
 import net.jetrix.messages.*;
 
@@ -115,7 +115,6 @@ public class TetrinetClient implements Client
 
         connectionTime = new Date();
 
-        // get the server configuration if possible
         Server server = Server.getInstance();
         if (server != null)
         {
@@ -126,10 +125,7 @@ public class TetrinetClient implements Client
         {
             while (!disconnected && serverConfig.isRunning())
             {
-                // fetch the next message
-                Message message = receive();
-
-                // discard unknown messages
+                Message message = receiveMessage();
                 if (message == null) continue;
 
                 if (message.getDestination() != null)
@@ -138,7 +134,6 @@ public class TetrinetClient implements Client
                 }
                 else if (channel != null)
                 {
-                    // send the message to the channel assigned to this client
                     channel.send(message);
                 }
                 else
@@ -246,10 +241,10 @@ public class TetrinetClient implements Client
         }
     }
 
-    public Message receive() throws IOException
+    public Message receiveMessage() throws IOException
     {
         // read raw message from socket
-        String line = ((AbstractProtocol) protocol).readLine(in);
+        String line = TetrinetProtocol.readLine(in);
         lastMessageTime = System.currentTimeMillis();
         if (log.isLoggable(Level.FINER))
         {

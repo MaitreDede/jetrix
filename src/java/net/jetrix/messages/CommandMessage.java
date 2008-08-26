@@ -29,7 +29,7 @@ import net.jetrix.*;
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
  */
-public class CommandMessage extends TextMessage
+public class CommandMessage extends PlineMessage
 {
     private String command;
     private List<String> parameters;

@@ -20,126 +20,44 @@
 package net.jetrix.tools;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.net.MalformedURLException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * A utility class that fetches a list of tetrinet servers from online
- * directories like tetrinet.org and tsrv.com.
+ * directories like tetrinet.org and tfast.org.
+ *
+ * @since 0.2
  *
  * @author Emmanuel Bourg
  * @version $Revision$, $Date$
- * @since 0.2
  */
 public class ServerDirectory
 {
     /**
      * Return the list of registered servers.
      */
-    public static Collection<String> getServers()
+    public static List<String> getServers() throws Exception
     {
-        Collection<String> servers = new TreeSet<String>();
+        List<String> servers = new ArrayList<String>();
+        URL url = new URL("http://tfast.org/en/servers.php");
+        BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
 
-        try
+        String line = null;
+
+        while ((line = in.readLine()) != null)
         {
-            servers.addAll(extractServers(new URL("http://slummy.tetrinet.org/grav/slummy_grav.html"), "<TD><font size=\"+0\"><font face=\"helvetica,arial\">", "<"));
-            servers.addAll(extractServers(new URL("http://dieterdhoker.mine.nu:8280/cgi-bin/TSRV/servers.htm"), "serverhost=", "\""));
-        }
-        catch (MalformedURLException e)
-        {
-            e.printStackTrace();
-        }
-
-        return getDistinctServers(servers);
-    }
-
-    /**
-     * Extract a list of server from a web page. There must be one server by line only
-     *
-     * @since 0.3
-     *
-     * @param url         the URL of the page containing the list of servers
-     * @param startString the string right before the server name
-     * @param endString   the string to find right after the server name
-     */
-    private static Collection<String> extractServers(URL url, String startString, String endString)
-    {
-        Collection<String> servers = new TreeSet<String>();
-        BufferedReader in = null;
-
-        try
-        {
-            in = new BufferedReader(new InputStreamReader(url.openStream()));
-
-            String line = null;
-
-            while ((line = in.readLine()) != null)
+            if (line.contains("serv="))
             {
-                if (line.contains(startString))
-                {
-                    int i = line.indexOf(startString) + startString.length();
-                    servers.add(line.substring(i, line.indexOf(endString, i)).toLowerCase());
-                }
+                int i = line.indexOf("serv=");
+                servers.add(line.substring(i + 5, line.indexOf("\"", i)));
             }
         }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-        finally
-        {
-            if (in != null)
-            {
-                try
-                {
-                    in.close();
-                }
-                catch (IOException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-        }
+
+        in.close(); // todo finally
 
         return servers;
-    }
-
-    /**
-     * Return the distinct hosts from the specified list of servers.
-     * Host names (i.e tetrinet.fr) are prefered over host addresses
-     * (i.e 194.117.194.68).
-     *
-     * @since 0.3
-     */
-    private static Set<String> getDistinctServers(Collection<String> servers)
-    {
-        Map<String, String> map = new HashMap<String, String>();
-
-        for (String server : servers)
-        {
-            try
-            {
-                // get the address of the server
-                InetAddress address = InetAddress.getByName(server);
-
-                // check if the server is missing from the map, or registered under a numerical form
-                String hostname = map.get(address.getHostAddress());
-                if (hostname == null || hostname.equals(address.getHostAddress()))
-                {
-                    map.put(address.getHostAddress(), server);
-                }
-            }
-            catch (UnknownHostException e)
-            {
-                // ignored
-            }
-        }
-
-        return new HashSet<String>(map.values());
     }
 }

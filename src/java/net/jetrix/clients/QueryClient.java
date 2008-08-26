@@ -59,7 +59,7 @@ public class QueryClient extends TetrinetClient
 
             while (!disconnected && serverConfig.isRunning())
             {
-                process(receive());
+                process(receiveMessage());
             }
         }
         catch (Exception e)
@@ -89,7 +89,7 @@ public class QueryClient extends TetrinetClient
             if ("listuser".equals(command.getCommand()))
             {
                 // "<nick>" "<team>" "<version>" <slot> <state> <auth> "<channelname>"
-                StringBuilder message = new StringBuilder();
+                StringBuffer message = new StringBuffer();
                 for (Client client : ClientRepository.getInstance().getClients())
                 {
                     User user = client.getUser();
@@ -116,25 +116,22 @@ public class QueryClient extends TetrinetClient
             else if ("listchan".equals(command.getCommand()))
             {
                 // "<name>" "<description>" <playernum> <playermax> <priority> <status>
-                StringBuilder message = new StringBuilder();
+                StringBuffer message = new StringBuffer();
                 for (Channel channel : ChannelManager.getInstance().channels())
                 {
                     ChannelConfig config = channel.getConfig();
 
-                    if (config.isVisible())
-                    {
-                        message.append("\"");
-                        message.append(config.getName());
-                        message.append("\" \"");
-                        message.append(config.getDescription());
-                        message.append("\" ");
-                        message.append(channel.getPlayerCount());
-                        message.append(" ");
-                        message.append(config.getMaxPlayers());
-                        message.append(" 0 ");
-                        message.append(channel.getGameState().getValue());
-                        message.append(QueryProtocol.EOL);
-                    }
+                    message.append("\"");
+                    message.append(config.getName());
+                    message.append("\" \"");
+                    message.append(config.getDescription());
+                    message.append("\" ");
+                    message.append(channel.getPlayerCount());
+                    message.append(" ");
+                    message.append(config.getMaxPlayers());
+                    message.append(" 0 ");
+                    message.append(channel.getGameState().getValue() + 1);
+                    message.append(QueryProtocol.EOL);
                 }
 
                 response.setText(message.toString());

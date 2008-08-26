@@ -52,8 +52,7 @@ public class ServerRuleSet extends RuleSetBase
         // command definitions
         digester.addObjectCreate("*/command", null, "class");
         digester.addSetNext("*/command", "addCommand", "net.jetrix.commands.Command");
-        digester.addCallMethod("*/command", "setAccessLevel", 1, new Class[] {Integer.TYPE});
-        digester.addCallParam("*/command", 0, "access-level");
+        digester.addSetProperties("*/command");
 
         // listeners
         digester.addObjectCreate("*/listener", null, "class");
@@ -72,12 +71,6 @@ public class ServerRuleSet extends RuleSetBase
 
         // banlist
         digester.addCallMethod("tetrinet-server/ban/host", "addBannedHost", 0);
-
-        // datasource
-        digester.addCallMethod("*/datasource/driver", "setDataSourceDriver", 0);
-        digester.addCallMethod("*/datasource/url", "setDataSourceURL", 0);
-        digester.addCallMethod("*/datasource/username", "setDataSourceUsername", 0);
-        digester.addCallMethod("*/datasource/password", "setDataSourcePassword", 0);
     }
 
 }

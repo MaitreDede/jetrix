@@ -62,7 +62,9 @@ public class TeleportCommand extends AbstractCommand implements ParameterCommand
         if (target == null)
         {
             // no player found
-            client.send(new PlineMessage("command.player_not_found", targetName));
+            PlineMessage response = new PlineMessage();
+            response.setKey("command.player_not_found", targetName);
+            client.send(response);
         }
         else
         {

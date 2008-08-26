@@ -29,9 +29,6 @@ import net.jetrix.messages.*;
  */
 public class TetrifastProtocol extends TetrinetProtocol
 {
-    /** Initialization token */
-    public static final String INIT_TOKEN = "tetrifaster";
-
     public String getName()
     {
         return "tetrifast";
@@ -39,7 +36,7 @@ public class TetrifastProtocol extends TetrinetProtocol
 
     public String translate(PlayerNumMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append(")#)(!@(*3 ");
         message.append(m.getSlot());
         return message.toString();
@@ -47,7 +44,7 @@ public class TetrifastProtocol extends TetrinetProtocol
 
     public String translate(NewGameMessage m)
     {
-        StringBuilder message = new StringBuilder();
+        StringBuffer message = new StringBuffer();
         message.append("*******");
         message.append(super.translate(m).substring(7));
         return message.toString();

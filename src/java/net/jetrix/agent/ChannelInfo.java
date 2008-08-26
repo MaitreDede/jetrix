@@ -76,11 +76,6 @@ public class ChannelInfo
         this.status = status;
     }
 
-    public boolean isPlaying()
-    {
-        return status > 1;
-    }
-
     public int getPlayernum()
     {
         return playernum;
@@ -99,14 +94,6 @@ public class ChannelInfo
     public void setPlayermax(int playermax)
     {
         this.playermax = playermax;
-    }
-
-    /**
-     * @since 0.3
-     */
-    public boolean isEmpty()
-    {
-        return playernum == 0;
     }
 
     public String toString()
